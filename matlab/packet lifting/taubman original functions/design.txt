@@ -1,0 +1,29 @@
+passband = 0.45;
+passband_ripple = 0.3;  % Applies to the composit filter
+stopband = 0.575;
+stopband_ripple = 0.1; % Applies to the composit filter
+max_cancel_mag = 1.3;
+
+% Specify forced zeros for the combined filter via their
+% normalized frequencies (0 to 1).  These zeros will occur in
+% conjugate pairs, regardless of their frequencies.  The remainder
+% of the filter design problem consists of finding a linear phase
+% common part, Q(z), which can be factorized into minimum and
+% maximum phase filters.  We do not include the effect of the
+% `forced_zeros' on the stopband, specifically so that we can get
+% a stopband whose zeros all exactly touch the origin.  It also
+% means that the `forced_zeros' provide stronger attenuation in
+% the stopband.
+
+forced_zeros = [1.0]; % Can be a row vector with more entries
+
+% Specify the relative importance assigned to cancelling energy in the
+% LL-H (donor) subband, as opposed to minimizing the transfer of
+% aliasing energy from the LH-L and HL-L subbands.
+
+alpha = 3;
+
+[Ht_dm,Hc_dm,Hp_dm,Ht_em,Hc_em,Hp_em] = ...
+    modlift_generate(passband,passband_ripple, ...
+                     stopband,stopband_ripple, ...
+                     forced_zeros,max_cancel_mag,alpha);
