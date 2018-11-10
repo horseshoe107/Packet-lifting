@@ -17,7 +17,7 @@ static double g0_coeffs[] = {0.5, 1, 0.5};
 #define G0_EXTENT 1
 static double g1_coeffs[] = {-0.25, -0.5, 1.5, -0.5, -0.25};
 #define G1_EXTENT 2
-static double hpf_coeffs[] = {-2,0,4,3,-5,-19,38,-19,-5,3,4,0,-2}; // divide by 64 later
+static double hpf_coeffs[] = {-2,0,4,3,-5,-19,38,-19,-5,3,4,0,-2}; // divided by 64 in initialise_hpf()
 #define HPF_EXTENT 6
 static double *g0_filter = g0_coeffs + G0_EXTENT;
 static double *g1_filter = g1_coeffs + G1_EXTENT;

@@ -190,6 +190,7 @@ void dwtnode::rawlread(char *fname, int hset, int wset, int expi)
 }
 void dwtnode::rawlread(char *fname, int expi)
 {  rawlread(fname,h,w,expi);  }
+// stream object must be binary: ifstream fin(fname,ios::binary);
 bool dwtnode::yuvstreamread(ifstream &yuvin)
 {
   dwtlevel[vertical]=0; dwtlevel[horizontal]=0;

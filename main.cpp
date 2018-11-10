@@ -2,8 +2,7 @@
 #include "dwtnode.h"
 int estimate(int argc, _TCHAR* argv[])
 {
-	//char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-	char currfile[] = "D:\\Work\\Images\\nonstandard\\horz_generated.pgm";
+	char currfile[] = "D:\\Work\\Images\\barbclean.pgm";
   estorient est(currfile,w5x3);
   est.init_orient(4,8,16);
   est.calc_energies();
@@ -73,19 +72,21 @@ int orienttest(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
-  char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-  //char currfile[] = "D:\\Work\\Images\\nonstandard\\sweptfreq.pgm";
+  //char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+  char currfile[] = "D:\\Work\\Images\\aspen0.pgm";
   //char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
+  //char currfile[] = "D:\\Work\\Images\\nonstandard\\thick_vert.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
   dwtnode in(currfile,w5x3);
-  in.ofield.init_orient("sideinf\\barb4.dat");
+  //in.ofield.init_orient("sideinf\\barb4.dat");
+  in.ofield.init_orient("sideinf\\aspen0.dat");
   //in.ofield.init_orient(4,8,8,4,0);
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
-  bool halfres=true; // compute mses for half resolution instead
+  bool halfres=false; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=packliftorient2;
+  testmode mode=orient;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
@@ -185,101 +186,12 @@ int compresstest(int argc, _TCHAR* argv[])
       ref.interleave(true);
     }
     break;
-  default:
-    cerr << "This test mode is unsupported" << endl;
-    exit(1);
-  }
-  {
-    (in.*encode_ptr)(halfres,adapt);
-    in.call_batch(mode,Cdecomp,halfres,dout); // run kdu_compress
-    if (halfres) in.halveimage();
-    //// test perfect reconstruction
-    (in.*decode_ptr)("",halfres,adapt);
-    cout << mse(ref,in) << endl;
-    //'(' << 10*log10(255^2/mse) << ')'; // output psnr instead
-    (in.*decode_ptr)("0.1",halfres,adapt);
-    if (imageout) in.pgmwrite("tmp\\recon0.1.pgm");
-    dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.2",halfres,adapt);
-    if (imageout) in.pgmwrite("tmp\\recon0.2.pgm");
-    dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.4",halfres,adapt);
-    if (imageout) in.pgmwrite("tmp\\recon0.4.pgm");
-    dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.6",halfres,adapt);
-    if (imageout) in.pgmwrite("tmp\\recon0.6.pgm");
-    dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.8",halfres,adapt);
-    if (imageout) in.pgmwrite("tmp\\recon0.8.pgm");
-    dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("1.0",halfres,adapt);
-    if (imageout)
-    {
-      if (halfres)
-        ref.pgmwrite("tmp\\halfres.pgm");
-      in.pgmwrite("tmp\\recon1.0.pgm");
-      system("kdu_compress -i tmp\\recon0.1.pgm,tmp\\recon0.2.pgm,tmp\\recon0.4.pgm,"
-        "tmp\\recon0.6.pgm,tmp\\recon0.8.pgm,tmp\\recon1.0.pgm"
-        " -o tmp\\recon.jp2 Creversible=yes Cycc=no");
-    }
-    dout << mse(ref,in) << endl;
-  }
-  dout.close();
-  return 0;
-}
-int hpfcompresstest(int argc, _TCHAR* argv[])
-{
-  char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
-  char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-  ofstream dout("results\\dumpout.txt",ios::app);
-  dwtnode in(currfile,w5x3);
-  in.ofield.init_orient("sideinf\\barb4.dat");
-	in.ofield.setaffinefield();
-	dwtnode ref=in;
-  bool adapt=true; // select adaptive mode
-  bool halfres=false; // compute mses for half resolution instead
-  bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=hpfprelift;
-  void (dwtnode::*encode_ptr)(bool, bool) = NULL;
-  void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
-  switch (mode)
-  {
-  case base:
-    encode_ptr = &dwtnode::rawl_encode;
-    dout << "Ordinary dwt MSEs";
-    decode_ptr = &dwtnode::rawl_decode;
-    if (halfres)
-    {
-      ref.analysis(both);
-    }
-    break;
-  case packlift:
-    encode_ptr = &dwtnode::packlift_encode;
-    dout << "Packet lifting MSEs";
-    decode_ptr = &dwtnode::packlift_decode;
-    if (halfres)
-    {
-      ref.analysis(both);
-      ref.extract_subband(0);
-      ref.extract_subband(1);
-      ref.extract_subband(2);
-      ref.subbands[0]->analysis(both);
-      ref.subbands[1]->analysis(both);
-      ref.subbands[2]->analysis(both);
-      ref.packlift(both,true,adapt);
-      ref.subbands[0]->synthesis(both);
-      ref.interleave(true);
-    }
-    if (adapt) dout << " adaptive";
-    break;
   case hpfprelift:
     encode_ptr = &dwtnode::hpfprelift_encode;
     dout << "HPF prelift MSEs";
     decode_ptr = &dwtnode::hpfprelift_decode;
     if (halfres)
-    {
       ref.hpf_oriented_analysis(both,adapt);
-    }
     break;
   case hpfprelift2:
     encode_ptr = &dwtnode::hpfprelift2_encode;
@@ -347,10 +259,9 @@ int hpftest(int argc, _TCHAR* argv[])
 int _tmain(int argc, _TCHAR* argv[])
 {
   //system("del sideinf\\alpha_transfer.dat");
-  //compresstest(argc,argv);
+  compresstest(argc,argv);
   //orienttest(argc,argv);
 	//estimate(argc,argv);
-  hpftest(argc,argv);
-  //hpfcompresstest(argc,argv);
+  //hpftest(argc,argv);
   return 0;
 }
