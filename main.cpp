@@ -110,7 +110,7 @@ int compresstest(int argc, char* argv[])
   int depth=2; // number of layers of scalability to create
   int layer=0; // compute mses for encoding layer (0 is full resolution)
   bool imageout=(layer>0); // dump out compressed, decoded images and collate
-  testmode mode=hpfprelift;
+  testmode mode=orient;
   dwtnode in(currfile,txtest);
   in.ofield.init_orient("sideinf\\bikecrop_11241.dat");
 	in.ofield.setaffinefield();
@@ -195,8 +195,12 @@ int compresstest(int argc, char* argv[])
     encode_ptr = &dwtnode::orient_encode;
     dout << "Oriented wavelet MSEs";
 		decode_ptr = &dwtnode::orient_decode;
-    if (halfres)
-      ref.oriented_analysis(both);
+    dwtnode *curr = &ref;
+    for (int i=0;i<layer;i++,curr=curr->subbands[0])
+    {
+      curr->oriented_analysis(both);
+      curr->extract_subband(0);
+    }
     break;}
   //case orient2packet:{
   //  encode_ptr = &dwtnode::orient2_packet_encode;
@@ -210,13 +214,6 @@ int compresstest(int argc, char* argv[])
   //    dwtnode tmp(*ref.subbands[0]);
   //    ref = tmp;
   //  }
-  //  break;}
-  //case orient_2layer:{
-  //  encode_ptr = &dwtnode::orient_2layer_encode;
-  //  dout << "2 level oriented MSEs";
-  //  decode_ptr = &dwtnode::orient_2layer_decode;
-  //  if (halfres)
-  //    ref.oriented_analysis(both);
   //  break;}
   case hpfprelift:{
     encode_ptr = &dwtnode::hpfprelift_encode;
