@@ -24,7 +24,7 @@ public:
   // manipulation functions (defined in orient_tx.cpp)
   // returns the shift (in 1/oprec units) corresponding to
   // the oriented transform at pixel location (y,x).
-  int retrieve(int y, int x, direction=vertical);
+  int retrieve(int y, int x, direction);
   inline int block_retrieve(int y, int x, direction dir)
   {
     if (y<0)        y=0;

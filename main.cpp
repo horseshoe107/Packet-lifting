@@ -334,7 +334,9 @@ int hpftest(int argc, _TCHAR* argv[])
   in.ofield.setaffinefield();
 
 	in.hpf_oriented_analysis(vertical,true);
+  //in.oriented_analysis(vertical);
   in.hpf_oriented_analysis(horizontal,true);
+  //in.oriented_analysis(horizontal);
 	in.pgmwrite("test.pgm");
 
   return 0;
@@ -345,7 +347,7 @@ int _tmain(int argc, _TCHAR* argv[])
   //compresstest(argc,argv);
   //orienttest(argc,argv);
 	//estimate(argc,argv);
-  //hpftest(argc,argv);
-  hpfcompresstest(argc,argv);
+  hpftest(argc,argv);
+  //hpfcompresstest(argc,argv);
   return 0;
 }
