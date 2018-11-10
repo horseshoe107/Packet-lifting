@@ -164,25 +164,23 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
         v1.pixels[(y/s/2)*v1.w+xsub/2] = tmp1.filt(hpf_h0_filter,xsub,0,hpf_h0_extent,horizontal);
       }
 		}
-		//v0.rawlwrite("barbv1.rawl");
-		//v1.rawlwrite("barbv2.rawl");
 		for (int y=0;y<h;y+=2*s)
 			for (int xsub=0;xsub<w;xsub+=2)
-			{ // filter v0 and v1 appropriately
-        double v0_n = v0.filt3x3abs(y/s/2,xsub/2);
-				double v1_n = v1.filt3x3abs(y/s/2,xsub/2);
-        double b = 0;
-        // if the orthogonal direction is oriented (nonzero shift) then it doesn't have aliasing
-        if (adapt && (ofield.retrieve(y,xsub,!dir)==0))
-        {
-          b = v0.pixels[y/s/2*v0.w+xsub/2] + v1.pixels[y/s/2*v1.w+xsub/2];
-          b *= prelift_adaptivity_lookup(v0_n,v1_n);
-        }
-        for (n=-G0_EXTENT;n<=G0_EXTENT;n++) // input-based filtering
-        { // apply synthesis filter and write output to the low-pass row
-          int x = xsub+n;
-          if ((x>=0)&&(x<w))
-            pixels[y*w+x] += b*g0_filter[n];
+			{ // if the orthogonal direction is oriented (nonzero shift) then we can assume it
+        // doesn't have aliasing, so we skip the hpf_prelift step
+        if (ofield.retrieve(y,xsub,!dir)==0)
+        { // filter v0 and v1 appropriately
+          double v0_n = v0.filt3x3abs(y/s/2,xsub/2);
+				  double v1_n = v1.filt3x3abs(y/s/2,xsub/2);
+          double b = v0.pixels[y/s/2*v0.w+xsub/2] + v1.pixels[y/s/2*v1.w+xsub/2];
+          if (adapt)
+            b *= prelift_adaptivity_lookup(v0_n,v1_n);
+          for (n=-G0_EXTENT;n<=G0_EXTENT;n++) // input-based filtering
+          { // apply synthesis filter and write output to the low-pass row
+            int x = xsub+n;
+            if ((x>=0)&&(x<w))
+              pixels[y*w+x] += b*g0_filter[n];
+          }
         }
 			}
 	}
@@ -213,18 +211,15 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
       }
     for (int x=0;x<w;x+=2*s)
       for (int y=0;y<h;y+=2)
-      { // filter v0 and v1
-        double v0_n = v0.filt3x3abs(y/2,x/s/2);
-				double v1_n = v1.filt3x3abs(y/2,x/s/2);
-        double b = 0;
-        // if the orthogonal direction is oriented (nonzero shift) then it doesn't have aliasing
-        if (adapt && (ofield.retrieve(y,x,!dir)==0))
-        {
-          b = v0.pixels[y/2*v0.w+x/s/2] + v1.pixels[y/2*v1.w+x/s/2];
-          b*= prelift_adaptivity_lookup(v0_n,v1_n);
+        if (ofield.retrieve(y,x,!dir)==0)
+        { // filter v0 and v1
+          double v0_n = v0.filt3x3abs(y/2,x/s/2);
+				  double v1_n = v1.filt3x3abs(y/2,x/s/2);
+          double b = v0.pixels[y/2*v0.w+x/s/2] + v1.pixels[y/2*v1.w+x/s/2];
+          if (adapt)
+            b*= prelift_adaptivity_lookup(v0_n,v1_n);
+          pixels[y*w+x] += b;
         }
-        pixels[y*w+x] += b;
-      }
   }
   return;
 }
@@ -295,24 +290,24 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
 		}
 		for (int y=0;y<h;y+=2*s)
 			for (int xsub=0;xsub<w;xsub+=2)
-			{ // CHANGE LATER: we can calculate v0 and v1 on the fly here rather than store all results
-        double v0_filt = v0.filt3x3abs(y/s/2,xsub/2);
-        double v1_filt = v1.filt3x3abs(y/s/2,xsub/2);
-        double low0_filt = low0.filt3x3abs(y/s/2,xsub/2);
-				double low1_filt = low1.filt3x3abs(y/s/2,xsub/2);
-        double b0=0, b1=0;
-        if (adapt && (ofield.retrieve(y,xsub,!dir)==0))
+			{
+        if (ofield.retrieve(y,xsub,!dir)==0)
         {
-          b0 = v0.pixels[y/s/2*v0.w+xsub/2];
-          b1 = v1.pixels[y/s/2*v1.w+xsub/2];
-          b0 *= update_adaptivity_lookup(b0, low0_filt);
-          b1 *= update_adaptivity_lookup(b1, low1_filt);
-        }
-        for (n=-G0_EXTENT;n<=G0_EXTENT;n++) // input-based filtering
-        { // apply synthesis filter and write output to the low-pass row
-          int x = xsub+n;
-          if ((x>=0)&&(x<w))
-            pixels[y*w+x] += (b0+b1)*g0_filter[n];
+          double b0 = v0.pixels[y/s/2*v0.w+xsub/2];
+          double b1 = v1.pixels[y/s/2*v1.w+xsub/2];
+          if (adapt)
+          {
+            double low0_filt = low0.filt3x3abs(y/s/2,xsub/2);
+				    double low1_filt = low1.filt3x3abs(y/s/2,xsub/2);
+            b0 *= update_adaptivity_lookup(b0, low0_filt);
+            b1 *= update_adaptivity_lookup(b1, low1_filt);
+          }
+          for (n=-G0_EXTENT;n<=G0_EXTENT;n++) // input-based filtering
+          { // apply synthesis filter and write output to the low-pass row
+            int x = xsub+n;
+            if ((x>=0)&&(x<w))
+              pixels[y*w+x] += (b0+b1)*g0_filter[n];
+          }
         }
 			}
 	}
@@ -344,20 +339,20 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
       }
     for (int x=0;x<w;x+=2*s)
       for (int y=0;y<h;y+=2)
-      { // filter v0 and v1
-        double v0_filt = v0.filt3x3abs(y/2,x/s/2);
-				double v1_filt = v1.filt3x3abs(y/2,x/s/2);
-        double low0_filt = (x==0)? this->filt3x3abs(y,x+s):this->filt3x3abs(y,x-s);
-        double low1_filt = ((x+s)>=w)? low0_filt : this->filt3x3abs(y,x+s);
-        double b0=0, b1=0;
-        if (adapt && (ofield.retrieve(y,x,vertical)==0))
+      {
+        if (ofield.retrieve(y,x,!dir)==0)
         {
-          b0 = v0.pixels[y/2*v0.w+x/s/2];
-          b1 = v1.pixels[y/2*v1.w+x/s/2];
-          b0 *= update_adaptivity_lookup(b0, low0_filt);
-          b1 *= update_adaptivity_lookup(b1, low1_filt);
+          double b0 = v0.pixels[y/2*v0.w+x/s/2];
+          double b1 = v1.pixels[y/2*v1.w+x/s/2];
+          if (adapt)
+          {
+            double low0_filt = (x==0)? this->filt3x3abs(y,x+s):this->filt3x3abs(y,x-s);
+            double low1_filt = ((x+s)>=w)? low0_filt : this->filt3x3abs(y,x+s);
+            b0 *= update_adaptivity_lookup(b0, low0_filt);
+            b1 *= update_adaptivity_lookup(b1, low1_filt);
+          }
+          pixels[y*w+x] += b0+b1;
         }
-        pixels[y*w+x] += b0+b1;
       }
   }
   return;
