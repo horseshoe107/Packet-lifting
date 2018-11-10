@@ -10,7 +10,7 @@ public:
 private:
   int position;
   unsigned char buffer;
-  ofstream bitsout;
+  std::ofstream bitsout;
 } bout;
 int bitscount;
 bitstream_output::~bitstream_output()
@@ -23,13 +23,13 @@ void bitstream_output::open(char *fname)
 {
   position=0;
   buffer=0;
-  bitsout.open(fname,ios::binary);
+  bitsout.open(fname,std::ios::binary);
 }
 void bitstream_output::push_data(bool *bits,int size)
 {
   if ((size<=0)||(size>20))
   {
-    cerr << size << " number of bits cannot be written" << endl;
+    std::cerr << size << " number of bits cannot be written" << std::endl;
     exit(1);
   }
   for (int i=0;i<size;i++)
@@ -56,7 +56,7 @@ void orientationfield::orientencode(char *fname)
   {
     if ((orientvec[i].hshift!=0)&&(orientvec[i].vshift!=0))
     {
-      cerr << "Error in orientation field: non zero shifts for both transform directions" << endl;
+      std::cerr << "Error in orientation field: non zero shifts for both transform directions" << std::endl;
       exit(2);
     }
     else
@@ -163,5 +163,5 @@ void codetree(char *fname, orienttree *root)
   bitscount=0;
   bout.open(fname);
   recursiveencode(root,0,true);
-  cout << bitscount << endl;
+  std::cout << bitscount << std::endl;
 }

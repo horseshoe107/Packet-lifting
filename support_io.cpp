@@ -25,16 +25,16 @@ void orientationfield::init_orient
 void orientationfield::init_orient(char *fname)
 {
   int tmp, hchk, wchk;
-  ifstream fin(fname,ios::binary);
+  std::ifstream fin(fname,std::ios::binary);
   if (!fin.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   fin >> wchk >> hchk >> blksz >> oprec >> maxshift;
   if ((h!=hchk)||(w!=wchk))
   {
-    cerr << "Orientation field must have dimensions matching the image" << endl;
+    std::cerr << "Orientation field must have dimensions matching the image" << std::endl;
     exit(1);
   }
   numblks=((h-1)/blksz+1)*((w-1)/blksz+1);
@@ -53,7 +53,7 @@ void orientationfield::init_orient(char *fname)
 }
 void orientationfield::clearfield(int seth, int setw)
 {
-  cerr << "Warning: resetting orientation field" << endl;
+  std::cerr << "Warning: resetting orientation field" << std::endl;
   h = seth;
   w = setw;
   if (orientvec!=NULL)
@@ -90,7 +90,7 @@ void orientationfield::inherit(orientationfield &parent)
   this->fieldtype = parent.fieldtype;
   if (parent.blksz==1)
   {
-    cerr << "Warning: subsampling orientation field" << endl;
+    std::cerr << "Warning: subsampling orientation field" << std::endl;
     this->blksz = 1;
     this->numblks = h*w;
     if (orientvec != NULL)
@@ -122,8 +122,8 @@ void orientationfield::inherit(orientationfield &parent)
   }
   else if (parent.blksz%2!=0) // blksz needs to be multiple of 2
   {
-    cerr << "Subsampling of shift field is not defined for ";
-    cerr << "block size " << parent.blksz << endl;
+    std::cerr << "Subsampling of shift field is not defined for "
+      << "block size " << parent.blksz << std::endl;
     exit(1);
   }
   else
@@ -141,10 +141,10 @@ void orientationfield::inherit(orientationfield &parent)
 void orientationfield::orientwrite(char *fname)
 {
 	const int blkwidth = (w-1)/blksz + 1;
-  ofstream fout(fname,ios::binary);
+  std::ofstream fout(fname,std::ios::binary);
   if (!fout.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   // write out header
@@ -153,7 +153,7 @@ void orientationfield::orientwrite(char *fname)
   for (int n=0;n<numblks;n++)
   {
 		if (n%blkwidth==0)
-			fout << endl;
+			fout << std::endl;
     fout << (int)orientvec[n].hshift << ','
         << (int)orientvec[n].vshift << ' ';
   }

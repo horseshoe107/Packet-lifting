@@ -104,12 +104,12 @@ public:
   void pgmread(const char *fname);
   void rawlread(const char *fname, int hset, int wset, int expi=6);
   void rawlread(const char *fname, int expi=6);
-  bool yuvstreamread(ifstream &yuvin);
-  bool uyvystreamread(ifstream &uyvyin);
+  bool yuvstreamread(std::ifstream &yuvin);
+  bool uyvystreamread(std::ifstream &uyvyin);
   void pgmwrite(const char *fname);
   void rawlwrite(const char *fname, int expi=6, bool allbands=false);
   void csvwrite(const char *fname);
-  void yuvstreamwrite(ofstream &yuvout);
+  void yuvstreamwrite(std::ofstream &yuvout);
   // ordinary manipulation functions (defined in dwtnode_tx.cpp)
   void extract_subband(int band);
   void insert_subband(int band, bool suppress_warnings=false);
@@ -171,8 +171,8 @@ public:
   void shift(int sigma, direction);
   void shrink(int depth);
   void halveimage();
-  void call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &fout);
-  void call_batch(testmode mode, char *Cdecomp, int depth, int layer, ofstream &fout);
+  void call_batch(testmode mode, char *Cdecomp, bool halfres, std::ofstream &fout);
+  void call_batch(testmode mode, char *Cdecomp, int depth, int layer, std::ofstream &fout);
   void rawl_encode(bool halfres=false, bool adapt=false);
   void rawl_encode(int depth=0, int layer=0, bool adapt=false);
   void rawl_decode(char *bitrate, bool halfres=false, bool adapt=false);

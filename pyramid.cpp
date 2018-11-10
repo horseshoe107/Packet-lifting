@@ -44,7 +44,7 @@ void dwtnode::pyramid_analysis()
 {
   if (dwtlevel[vertical]!=dwtlevel[horizontal])
   {
-    cerr << "Scalability both dimensions must be equal for pyramid transform" << endl;
+    std::cerr << "Scalability both dimensions must be equal for pyramid transform" << std::endl;
     exit(1);
   }
   dwtnode *curr = this;
@@ -64,7 +64,7 @@ void dwtnode::pyramid_analysis()
       curr->downsample_lift(true);
     break;
   default:
-    cerr << "Transform is not a recognised pyramid transform!" << endl;
+    std::cerr << "Transform is not a recognised pyramid transform!" << std::endl;
     exit(1);
   }
   dwtlevel[0]++;
@@ -75,7 +75,7 @@ void dwtnode::pyramid_synthesis()
 {
   if (dwtlevel[vertical]!=dwtlevel[horizontal])
   {
-    cerr << "Scalability both dimensions must be equal for pyramid transform" << endl;
+    std::cerr << "Scalability both dimensions must be equal for pyramid transform" << std::endl;
     exit(1);
   }
   dwtlevel[0]--;
@@ -93,7 +93,7 @@ void dwtnode::pyramid_synthesis()
     curr->upsample_lift(false);
     break;
   default:
-    cerr << "Transform is not a recognised pyramid transform!" << endl;
+    std::cerr << "Transform is not a recognised pyramid transform!" << std::endl;
     exit(1);
   }
   return;
@@ -121,14 +121,14 @@ void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
   case pyramid3x2:
     break;
   default:
-    cerr << "Non-pyramid transform defined!" << endl;
+    std::cerr << "Non-pyramid transform defined!" << std::endl;
     exit(1);
   }
   dwtnode *curr = this;
   for (int i=0;i<depth;i++,curr=curr->subbands[0])
   {
     curr->pyramid_analysis();
-    string d_fname = "tmp\\diff";
+    std::string d_fname = "tmp\\diff";
     d_fname += i + ".rawl";
     if (i >= layer) // write out all layers needed to reconstruct
       curr->rawlwrite(d_fname.c_str());
@@ -143,10 +143,10 @@ void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
     rawl_decode(bitrate,halfres,adapt);
     return;
   }
-  string d_fname = "tmp\\diff";
+  std::string d_fname = "tmp\\diff";
   d_fname = d_fname + bitrate + ".rawl";
   rawlread(d_fname.c_str());
-  string c_fname = "tmp\\coarse";
+  std::string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
   upsample_lift(false);
@@ -161,13 +161,13 @@ void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
   case pyramid3x2:
     break;
   default:
-    cerr << "Non-pyramid transform defined!" << endl;
+    std::cerr << "Non-pyramid transform defined!" << std::endl;
     exit(1);
   }
   dwtnode *curr = this;
   for (int i=layer;i<depth;i++,curr=curr->subbands[0])
   {
-    string d_fname = "tmp\\diff";
+    std::string d_fname = "tmp\\diff";
     d_fname += i;
     d_fname = d_fname + bitrate + ".rawl";
     rawlread(d_fname.c_str());
@@ -176,7 +176,7 @@ void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
       delete subbands[0];
     curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,txbase,true);
   }
-  string c_fname = "tmp\\coarse";
+  std::string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   curr->rawlread(c_fname.c_str());
   dwtlevel[vertical]=dwtlevel[horizontal]=depth-layer;
@@ -211,10 +211,10 @@ void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
     rawl_decode(bitrate,halfres,adapt);
     return;
   }
-  string d_fname = "tmp\\diff";
+  std::string d_fname = "tmp\\diff";
   d_fname = d_fname + bitrate + ".rawl";
   rawlread((char *)d_fname.c_str());
-  string c_fname = "tmp\\coarse";
+  std::string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
   downsample_lift(false);
@@ -242,10 +242,10 @@ void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
     rawl_decode(bitrate,halfres,adapt);
     return;
   }
-  string d_fname = "tmp\\diff";
+  std::string d_fname = "tmp\\diff";
   d_fname = d_fname + bitrate + ".rawl";
   rawlread((char *)d_fname.c_str());
-  string c_fname = "tmp\\coarse";
+  std::string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
   upsample_lift(false);

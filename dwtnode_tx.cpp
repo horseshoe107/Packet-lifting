@@ -5,8 +5,8 @@ void dwtnode::extract_subband(int band)
 {
   if ((dwtlevel[vertical]==0)||(dwtlevel[horizontal]==0))
   {
-    cerr << "Subband cannot be extracted - image is still in"
-      "baseband form in at least one direction." << endl;
+    std::cerr << "Subband cannot be extracted - image is still in"
+      "baseband form in at least one direction." << std::endl;
     exit(1);
   }
   // calculate the offsets for the subband when it is in
@@ -37,8 +37,8 @@ void dwtnode::insert_subband(int n, bool suppress_warnings)
 {
   if (subbands[n]==NULL)
   {
-    cerr << "Attempting to interleave from subband "
-      << n << "; data does not exist!" << endl;
+    std::cerr << "Attempting to interleave from subband "
+      << n << "; data does not exist!" << std::endl;
     exit(1);
   }
   // check for inconsistency of dwtlevel between parent and child
@@ -60,8 +60,8 @@ void dwtnode::insert_subband(int n, bool suppress_warnings)
     default: break;
     }
     if (warning)
-      cerr << "Warning: subband " << n << "'s dwtlevel is incompatible"
-        << " with parent - interleave may cause errors!" << endl;
+      std::cerr << "Warning: subband " << n << "'s dwtlevel is incompatible"
+        << " with parent - interleave may cause errors!" << std::endl;
   }
   int xoff = (n%2);
   int yoff = (n/2);
@@ -98,8 +98,8 @@ void dwtnode::interleave(bool suppress_warnings)
       default: break;
       }
       if (warning)
-        cerr << "Warning: subband " << n << "'s dwtlevel is incompatible"
-          << " with parent - interleave may cause errors!" << endl;
+        std::cerr << "Warning: subband " << n << "'s dwtlevel is incompatible"
+          << " with parent - interleave may cause errors!" << std::endl;
     }
     int xoff = (n%2);
     int yoff = (n/2);
@@ -125,12 +125,13 @@ void dwtnode::transpose()
     pixels = pixdest;
   }
   else
-    cerr << "warning: no pixel data to transpose!" << endl;
-  swap(h,w);
+    std::cerr << "warning: no pixel data to transpose!" << std::endl;
+  std::swap(h,w);
+  std::swap(dwtlevel[vertical], dwtlevel[horizontal]);
   for (int n=0;n<4;n++)
     if (subbands[n]!=NULL)
       subbands[n]->transpose();
-  swap(subbands[1],subbands[2]);
+  std::swap(subbands[1],subbands[2]);
   return;
 }
 // Calculates the output of the inner product of filter f and the image over the
@@ -153,7 +154,7 @@ double dwtnode::filt(double *f, int n, int offset, int N, direction dir, bool fo
 {
   if (dir == both)
   {
-    cerr << "filt function only operates in one direction" << endl;
+    std::cerr << "filt function only operates in one direction" << std::endl;
     exit(1);
   }
   double *sig = pixels+n;
@@ -197,7 +198,7 @@ double dwtnode::filt3x3abs(int y, int x)
 {
   if ((y<0)||(y>=h)||(x<0)||(x>=w))
   {
-    cerr << "filt3x3abs error: y,x outside boundaries of the image" << endl;
+    std::cerr << "filt3x3abs error: y,x outside boundaries of the image" << std::endl;
     exit(1);
   }
   const int xstep = 1 << dwtlevel[horizontal];
@@ -224,7 +225,7 @@ void dwtnode::apply_LHlift(double a, direction dir)
 {
   if (dir == both)
   {
-    cerr << "apply_LHlift: only horizontal or vertical allowed" << endl;
+    std::cerr << "apply_LHlift: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   const int s = 1<<dwtlevel[dir]; // step size
@@ -256,7 +257,7 @@ void dwtnode::apply_HLlift(double a, direction dir)
 {
   if (dir == both)
   {
-    cerr << "apply_HLlift: only horizontal or vertical allowed" << endl;
+    std::cerr << "apply_HLlift: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   const int s = 1<<dwtlevel[dir];
@@ -335,7 +336,7 @@ void dwtnode::analysis(direction dir)
     dwtlevel[dir]++;
     break;
   default:
-    cerr << "Transform is not a recognised wavelet filter!" << endl;
+    std::cerr << "Transform is not a recognised wavelet filter!" << std::endl;
     exit(1);
   }
   return;
@@ -364,7 +365,7 @@ void dwtnode::synthesis(direction dir)
     apply_LHlift(1.586134342,dir);
     break;
   default:
-    cerr << "Transform is not a recognised wavelet filter!" << endl;
+    std::cerr << "Transform is not a recognised wavelet filter!" << std::endl;
     exit(1);
   }
   return;

@@ -22,7 +22,7 @@ direction operator!(direction dir)
     case horizontal:
       return vertical;
     default:
-      cerr << "Inverse of this direction has no meaning" << endl;
+      std::cerr << "Inverse of this direction has no meaning" << std::endl;
       exit(1);
   }
 }

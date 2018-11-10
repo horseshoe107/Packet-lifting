@@ -27,10 +27,10 @@ public:
 packlift_filters::packlift_filters(char *fname)
 {
   ht_coeff=NULL, hc_coeff=NULL, hp_coeff=NULL;
-  ifstream filtin(fname,ios::binary);
+  std::ifstream filtin(fname,std::ios::binary);
   if (!filtin.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   filtin >> htN;
@@ -47,15 +47,15 @@ packlift_filters::packlift_filters(char *fname)
     filtin >> hc_coeff[n];
   if (!filtin.good())
   {
-    cerr << "Could not read in filters: " << fname
-      << " file may be wrong format" << endl;
+    std::cerr << "Could not read in filters: " << fname
+      << " file may be wrong format" << std::endl;
     exit(2);
   }
   if ((htN+hcN)%2 != 0)
   {
-    cerr << "The transfer and cancellation filters must "
+    std::cerr << "The transfer and cancellation filters must "
       << "both have even, or odd number of samples - "
-      << "end-to-end filter must be linear phase." << endl;
+      << "end-to-end filter must be linear phase." << std::endl;
     exit(3);
   }
   filtin >> hpN;
@@ -89,7 +89,7 @@ void packet_transfer(dwtnode &donor, dwtnode &receiver,
 {
   if (dir==both)
   {
-    cerr << "packet_transfer: only horizontal or vertical allowed" << endl;
+    std::cerr << "packet_transfer: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   int N = f.htN/2;
@@ -129,7 +129,7 @@ void packet_cancel(dwtnode &donor, dwtnode &receiver,
 {
   if (dir==both)
   {
-    cerr << "packet_cancel: only horizontal or vertical allowed" << endl;
+    std::cerr << "packet_cancel: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   int N = f.hcN/2;
@@ -215,7 +215,7 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
 {
   if (dir==both)
   {
-    cerr << "packet_transfer_adaptive: only horizontal or vertical allowed" << endl;
+    std::cerr << "packet_transfer_adaptive: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   int N = f.htN/2;                   // For odd order filters the
@@ -296,8 +296,8 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
   {
     if ((subbands[0]->dwtlevel[horizontal]!=1)||(subbands[1]->dwtlevel[horizontal]!=1))
     {
-      cerr << "Warning: horizontal dwt levels are inconsistent; packet "
-        << "lifting may be invalid" << endl;
+      std::cerr << "Warning: horizontal dwt levels are inconsistent; packet "
+        << "lifting may be invalid" << std::endl;
     }
     // extract subband packets needed for horizontal antialiasing
     subbands[0]->extract_subband(1); // LL-HL
@@ -317,8 +317,8 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
   {
     if ((subbands[0]->dwtlevel[vertical]!=1)||(subbands[2]->dwtlevel[vertical]!=1))
     {
-      cerr << "Warning: vertical dwt levels are inconsistent; packet "
-        << "lifting may be invalid" << endl;
+      std::cerr << "Warning: vertical dwt levels are inconsistent; packet "
+        << "lifting may be invalid" << std::endl;
     }
     subbands[0]->extract_subband(2); // LL-LH
     subbands[2]->extract_subband(0); // LH-LL

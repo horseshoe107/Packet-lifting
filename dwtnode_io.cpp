@@ -24,7 +24,7 @@ dwtnode::dwtnode(const char *fname, txtype type)
     pgmread(fname);
   else
   {
-    cerr << "File format not supported" << endl;
+    std::cerr << "File format not supported" << std::endl;
     exit(1);
   }
 }
@@ -38,7 +38,7 @@ dwtnode::dwtnode(const char *fname, int hset, int wset, txtype type, int expi)
     rawlread(fname,hset,wset,expi);
   else
   {
-    cerr << "File format not supported" << endl;
+    std::cerr << "File format not supported" << std::endl;
     exit(1);
   }
 }
@@ -87,7 +87,7 @@ dwtnode& dwtnode::operator=(const dwtnode &target)
 	ofield.copy(target.ofield);
   return *this;
 }
-void chk_pgm_comment(ifstream &in, bool eatspace)
+void chk_pgm_comment(std::ifstream &in, bool eatspace)
 {
   char c;
   while (true)
@@ -113,16 +113,16 @@ void dwtnode::pgmread(const char *fname)
 {
   char c[2], tmp;
   int maxval;
-  ifstream pgmin(fname,ios::binary);
+  std::ifstream pgmin(fname,std::ios::binary);
   if (!pgmin.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   pgmin >> c[0] >> c[1]; // read header
   if ((c[0]!='P')||(c[1]!='5'))
   { // "P5" is the recognised header code for pgm files
-    cerr << "File does not have a valid PGM header." << endl;
+    std::cerr << "File does not have a valid PGM header." << std::endl;
     exit(1);
   }
   chk_pgm_comment(pgmin, true);
@@ -132,7 +132,7 @@ void dwtnode::pgmread(const char *fname)
   chk_pgm_comment(pgmin, true);
   pgmin >> maxval;
   if (maxval != 255)
-    cerr << "Warning: PGM is not an 8-bit file" << endl;
+    std::cerr << "Warning: PGM is not an 8-bit file" << std::endl;
   chk_pgm_comment(pgmin, false);
   dwtlevel[vertical]=0; dwtlevel[horizontal]=0;
   if (pixels!=NULL)
@@ -163,10 +163,10 @@ void dwtnode::rawlread(const char *fname, int hset, int wset, int expi)
   h=hset; w=wset;
   dwtlevel[vertical]=0; dwtlevel[horizontal]=0;
   const double expf = 1<<expi;
-  ifstream rawin(fname,ios::binary);
+  std::ifstream rawin(fname,std::ios::binary);
   if (!rawin.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   if (pixels!=NULL)
@@ -191,7 +191,7 @@ void dwtnode::rawlread(const char *fname, int hset, int wset, int expi)
 void dwtnode::rawlread(const char *fname, int expi)
 {  rawlread(fname,h,w,expi);  }
 // stream object must be binary: ifstream fin(fname,ios::binary);
-bool dwtnode::yuvstreamread(ifstream &yuvin)
+bool dwtnode::yuvstreamread(std::ifstream &yuvin)
 {
   dwtlevel[vertical]=0; dwtlevel[horizontal]=0;
   char tmp;
@@ -216,7 +216,7 @@ bool dwtnode::yuvstreamread(ifstream &yuvin)
     ofield.clearfield(h,w);
   return yuvin.good();
 }
-bool dwtnode::uyvystreamread(ifstream &uyvyin)
+bool dwtnode::uyvystreamread(std::ifstream &uyvyin)
 {
   dwtlevel[vertical]=0; dwtlevel[horizontal]=0;
   char tmp;
@@ -246,15 +246,15 @@ void dwtnode::pgmwrite(const char *fname)
   const int verstep = 1<<dwtlevel[vertical];
   const int horstep = 1<<dwtlevel[horizontal];
   bool warning = false;
-  ofstream pgmout(fname,ios::binary);
+  std::ofstream pgmout(fname,std::ios::binary);
   if (!pgmout.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   // write compliant header
   pgmout << "P5" << '\n' << (w/horstep) << ' '
-    << (h/verstep) << '\n' << "255" << endl;
+    << (h/verstep) << '\n' << "255" << std::endl;
   for (int y=0;y<h;y+=verstep)
     for (int x=0;x<w;x+=horstep)
     {
@@ -272,7 +272,7 @@ void dwtnode::pgmwrite(const char *fname)
         pgmout << (char) floor(pixels[y*w+x]+0.5);
     }
   if (warning)
-    cerr << "Warning: (pgmwrite) some pixels exceeded [0,255]" << endl;
+    std::cerr << "Warning: (pgmwrite) some pixels exceeded [0,255]" << std::endl;
   pgmout.close();
   return;
 }
@@ -285,10 +285,10 @@ void dwtnode::rawlwrite(const char *fname, int expi, bool allbands)
   const int expf = 1<<expi; // expand by 2^6 = 64
   const int maxval = 1<<15;
   bool warning = false;
-  ofstream rawout(fname,ios::binary);
+  std::ofstream rawout(fname,std::ios::binary);
   if (!rawout.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   int j;
@@ -312,8 +312,8 @@ void dwtnode::rawlwrite(const char *fname, int expi, bool allbands)
       rawout.write((char *) &k,sizeof(short));
     }
   if (warning)
-    cerr << "Warning: (rawlwrite) some pixels exceeded ["
-      << -maxval << "," << (maxval-1) << "] range" << endl;
+    std::cerr << "Warning: (rawlwrite) some pixels exceeded ["
+      << -maxval << "," << (maxval-1) << "] range" << std::endl;
   rawout.close();
   return;
 }
@@ -321,10 +321,10 @@ void dwtnode::csvwrite(const char *fname)
 {
   const int verstep = 1<<dwtlevel[vertical];
   const int horstep = 1<<dwtlevel[horizontal];
-  ofstream csvout(fname,ios::binary);
+  std::ofstream csvout(fname,std::ios::binary);
   if (!csvout.good())
   {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    std::cerr << "Access of file " << fname << " unsuccessful." << std::endl;
     exit(1);
   }
   for (int y=0;y<h;y+=verstep)
@@ -332,13 +332,13 @@ void dwtnode::csvwrite(const char *fname)
     {
       csvout << pixels[y*w+x];
       if (x==(w-1))
-        csvout << endl;
+        csvout << std::endl;
       else csvout << ", ";
     }
   csvout.close();
   return;
 }
-void dwtnode::yuvstreamwrite(ofstream &yuvout)
+void dwtnode::yuvstreamwrite(std::ofstream &yuvout)
 {
   const int verstep = 1<<dwtlevel[vertical];
   const int horstep = 1<<dwtlevel[horizontal];
@@ -364,6 +364,6 @@ void dwtnode::yuvstreamwrite(ofstream &yuvout)
   for (int n=0;n<h*w/2/verstep/horstep;n++)
     yuvout << (char) 128;
   if (warning)
-    cerr << "Warning: image exceeded pixel dynamic range" << endl;
+    std::cerr << "Warning: image exceeded pixel dynamic range" << std::endl;
   return;
 }

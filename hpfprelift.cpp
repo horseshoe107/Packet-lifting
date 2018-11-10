@@ -117,13 +117,13 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
 {
   if (dir==both)
   {
-    cerr << "hpf_HLlift: only horizontal or vertical allowed" << endl;
+    std::cerr << "hpf_HLlift: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   if (dwtlevel[!dir] != ((dir==vertical)?0:1))
   {
-    cerr << "hpf_HLlift cannot be used with this dwtlevel structure: vertical depth"
-		  << dwtlevel[vertical] << ", horizontal depth " << dwtlevel[horizontal] << endl;
+    std::cerr << "hpf_HLlift cannot be used with this dwtlevel structure: vertical depth"
+		  << dwtlevel[vertical] << ", horizontal depth " << dwtlevel[horizontal] << std::endl;
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
@@ -242,13 +242,13 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
 {
   if (dir==both)
   {
-    cerr << "hpf_update_HLlift: only horizontal or vertical allowed" << endl;
+    std::cerr << "hpf_update_HLlift: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   if (dwtlevel[!dir] != ((dir==vertical)?0:1))
   {
-    cerr << "hpf_HLlift cannot be used with this dwtlevel structure: vertical depth"
-		  << dwtlevel[vertical] << ", horizontal depth " << dwtlevel[horizontal] << endl;
+    std::cerr << "hpf_HLlift cannot be used with this dwtlevel structure: vertical depth"
+		  << dwtlevel[vertical] << ", horizontal depth " << dwtlevel[horizontal] << std::endl;
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
@@ -385,7 +385,7 @@ void dwtnode::hpf_oriented_analysis(direction dir, bool adapt)
     apply_gain_factors(1,0.5,dir);
     break;
   default:
-    cerr << "No wavelet kernels other than 5x3 permitted" << endl;
+    std::cerr << "No wavelet kernels other than 5x3 permitted" << std::endl;
     exit(2);
   }
   dwtlevel[dir]++;
@@ -410,7 +410,7 @@ void dwtnode::hpf_oriented_synthesis(direction dir, bool adapt)
     hpf_HLlift(0.5,dir,adapt);
     break;
   default:
-    cerr << "No wavelet kernels other than 5x3 permitted" << endl;
+    std::cerr << "No wavelet kernels other than 5x3 permitted" << std::endl;
     exit(2);
   }
 }

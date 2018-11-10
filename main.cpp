@@ -26,8 +26,8 @@ int quadtree_estimate(int argc, _TCHAR* argv[])
 int yuvstreamprocess(int argc, _TCHAR* argv[])
 {
   char fname[] = "D:\\Work\\Videos\\MOBILE_352x288_30_orig_01.yuv";
-  ifstream fin(fname,ios::binary);
-  ofstream half("mobile_176x144.yuv",ios::binary);
+  std::ifstream fin(fname,std::ios::binary);
+  std::ofstream half("mobile_176x144.yuv",std::ios::binary);
   dwtnode node(288,352,w5x3);
   node.yuvstreamread(fin);
   node.pgmwrite("mobile0.pgm");
@@ -43,10 +43,10 @@ int yuvstreamprocess(int argc, _TCHAR* argv[])
 int shifttest(int argc, _TCHAR* argv[])
 {
   char currfile[] = "D:\\Work\\Images\\city0.pgm";
-  ofstream yuvout("shifttest.yuv",ios::binary);
+  std::ofstream yuvout("shifttest.yuv",std::ios::binary);
   if (!yuvout.good())
   {
-    cerr << "Access of file unsuccessful." << endl;
+    std::cerr << "Access of file unsuccessful." << std::endl;
     exit(1);
   }
   for (int sigma=0;sigma<80;sigma++)
@@ -103,13 +103,13 @@ int compresstest(int argc, _TCHAR* argv[])
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
   //char Cdecomp[] = "B(-:-:-),B(-:-:-)";
   char currfile[] = "D:\\Work\\Images\\lighthouse.pgm";
-  ofstream dout("results\\dumpout.txt",ios::app);
+  std::ofstream dout("results\\dumpout.txt",std::ios::app);
   txtype txtest = pyramid;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   int depth=1; // number of layers of scalability to create
   int layer=0; // compute mses for encoding layer (0 is full resolution)
-  bool imageout=halfres; // dump out compressed, decoded images and collate
+  bool imageout=(layer>0); // dump out compressed, decoded images and collate
   testmode mode=pyramid_test;
   dwtnode in(currfile,txtest);
   in.ofield.init_orient("sideinf\\lighthouse_1244.dat");
@@ -138,7 +138,7 @@ int compresstest(int argc, _TCHAR* argv[])
       dout << "Tran pyramid MSEs";
     else
     {
-      cerr << "Non-pyramid transform selected with pyramid encode test" << endl;
+      std::cerr << "Non-pyramid transform selected with pyramid encode test" << std::endl;
       exit(1);
     }
     for (int i=0;i<layer;i++)
@@ -233,7 +233,7 @@ int compresstest(int argc, _TCHAR* argv[])
   //    ref.hpf_oriented_analysis(both,adapt);
   //  break;}
   default:
-    cerr << "This test mode is unsupported" << endl;
+    std::cerr << "This test mode is unsupported" << std::endl;
     exit(1);
   }
   {
@@ -242,7 +242,7 @@ int compresstest(int argc, _TCHAR* argv[])
     in.shrink(layer); // reduce dimensions if layer>0
     //// test perfect reconstruction
     (in.*decode_ptr)("",depth,layer,adapt);
-    cout << "testing perfect reconstruction: " << mse(ref,in) << endl;
+    std::cout << "testing perfect reconstruction: " << mse(ref,in) << std::endl;
     //'(' << 10*log10(255^2/mse) << ')'; // output psnr instead
     (in.*decode_ptr)("0.1",depth,layer,adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.1.pgm");
@@ -262,14 +262,16 @@ int compresstest(int argc, _TCHAR* argv[])
     (in.*decode_ptr)("1.0",depth,layer,adapt);
     if (imageout)
     {
-      if (halfres)
+      if (layer==1)
         ref.pgmwrite("results\\halfres.pgm");
+      if (layer==2)
+        ref.pgmwrite("results\\quartres.pgm");
       in.pgmwrite("tmp\\recon1.0.pgm");
       system("kdu_compress -i tmp\\recon0.1.pgm,tmp\\recon0.2.pgm,tmp\\recon0.4.pgm,"
         "tmp\\recon0.6.pgm,tmp\\recon0.8.pgm,tmp\\recon1.0.pgm"
         " -o tmp\\recon.jp2 Creversible=yes Cycc=no");
     }
-    dout << mse(ref,in) << endl;
+    dout << mse(ref,in) << std::endl;
   }
   dout.close();
   return 0;

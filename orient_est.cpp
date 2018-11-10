@@ -27,7 +27,7 @@ void estorient::transpose()
 {
   const int orienth = (h-1)/ofield.blksz+1;
   const int orientw = (w-1)/ofield.blksz+1;
-  swap(orientenergy.hJ,orientenergy.vJ);
+  std::swap(orientenergy.hJ,orientenergy.vJ);
   if (orientenergy.hJ != NULL)
   {
     double **edest = new double*[ofield.numblks];
@@ -248,7 +248,7 @@ void estorient::choose_shift(int orientblk, direction dir, double thresh)
 {
   if (dir==both)
   {
-    cerr << "Direction can only be vertical or horizontal!" << endl;
+    std::cerr << "Direction can only be vertical or horizontal!" << std::endl;
     exit(1);
   }
   char bestshift = 0;
@@ -270,7 +270,7 @@ void estorient::choose_orient()
   double tarray[] = {0.1, 0.4, 0.65, 0.8, 0.95};
   for (int i=0;i<5;i++)
   {
-    cout << "pass " << (i+1) << "... ";
+    std::cout << "pass " << (i+1) << "... ";
     double thresh = tarray[i];
     for (int n=0;n<ofield.numblks;n++)
     { // align the transform with the least 0-shift error
@@ -286,7 +286,7 @@ void estorient::choose_orient()
       }
     }
   }
-  cout << endl;
+  std::cout << std::endl;
   return;
 }
 void estorient::legacy_choose_orient()
@@ -366,7 +366,7 @@ void quadtree_est::init(int seth, int setw, int setminblksize, float setlambda, 
     orientenergy[0][n] = new float[s];
     orientenergy[1][n] = new float[s];
   }
-  for (size=1;size<max(h,w);size<<=1)
+  for (size=1;size<std::max(h,w);size<<=1)
     ;
   return;
 }
@@ -419,9 +419,9 @@ void estorient2::calc_energies(int minblksize, float lambda)
 }
 void quadtree_est::firstpass_constructtree(int locy, int locx, int depth, orienttree *&node)
 { //determine the appropriate area of pixels
-  int endy = min(h,locy+(size>>depth));
-  int endx = min(w,locx+(size>>depth));
-  int blocksize = max((endy-locy)*(endx-locx),0); // blocksize must be non-negative
+  int endy = std::min(h,locy+(size>>depth));
+  int endx = std::min(w,locx+(size>>depth));
+  int blocksize = std::max((endy-locy)*(endx-locx),0); // blocksize must be non-negative
   float b = lambda*blocksize/a; // knee of log-linear function
   if (node!=NULL)
     delete node;
@@ -458,7 +458,7 @@ int compute_child_Ls(direction childdir, char childshift, direction parentdir, i
   // error checking
   if ((childdir==both)||(parentdir==both))
   {
-    cerr << "direction supplied must be vertical or horizontal only" << endl;
+    std::cerr << "direction supplied must be vertical or horizontal only" << std::endl;
     exit(1);
   }
   if (parentshift==0)
@@ -526,7 +526,7 @@ void quadtree_est::thirdpass(direction pdir, char pshift, orienttree *node)
 {
   if (pdir==both)
   {
-    cerr << "Only vertical and horizontal directions allowed" << endl;
+    std::cerr << "Only vertical and horizontal directions allowed" << std::endl;
     exit(1);
   }
   // choose best shift for this node
@@ -561,20 +561,20 @@ void quadtree_est::thirdpass(direction pdir, char pshift, orienttree *node)
 void estorient2::quadtree_estimate()
 {
   qtree.firstpass_constructtree(0,0,0,root); // construct tree, calculate E + J
-  cout << "cleared first pass" << endl;
+  std::cout << "cleared first pass" << std::endl;
   qtree.secondpass(root); // calculate best shift+J for every parent possibility
-  cout << "cleared second pass" << endl;
+  std::cout << "cleared second pass" << std::endl;
   qtree.thirdpass(vertical, 0, root); // choose shifts and carry out prunings
-  cout << "cleared third pass" << endl;
+  std::cout << "cleared third pass" << std::endl;
   codetree("encodedshiftfield.dat",root);
-  cout << "cleared coding" << endl;
+  std::cout << "cleared coding" << std::endl;
 }
 void quadtree_est::add_quadtree(int locy, int locx, int depth, orienttree *node, orientation *orientvec)
 {
   if (node->leaf)
   {
-    int endy = min(h,locy+(size>>depth));
-    int endx = min(w,locx+(size>>depth));
+    int endy = std::min(h,locy+(size>>depth));
+    int endx = std::min(w,locx+(size>>depth));
     for (int y=locy;y<endy;y++) // locy+1 for more visibility in matlab, locy for the correct field
       for (int x=locx;x<endx;x++)
       { // there should be no overlap, but if there is always overwrite

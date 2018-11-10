@@ -315,8 +315,8 @@ int orientationfield::retrieve(int y, int x, direction dir)
 {
   if (dir == both)
   {
-    cerr << "Direction of the oriented transform can only "
-      << "be vertical or horizontal" << endl;
+    std::cerr << "Direction of the oriented transform can only "
+      << "be vertical or horizontal" << std::endl;
     exit(1);
   }
   switch (fieldtype)
@@ -326,7 +326,7 @@ int orientationfield::retrieve(int y, int x, direction dir)
   case affinegrid:
     return affine_retrieve(y,x,dir);
   default:
-    cerr << "Orientation field type unsupported" << endl;
+    std::cerr << "Orientation field type unsupported" << std::endl;
   }
   exit(1);
 }
@@ -371,11 +371,11 @@ void orientationfield::transpose()
       for (int x=0;x<=(w-1)/blksz;x++)
         odest[x*((h-1)/blksz+1)+y]=orientvec[y*((w-1)/blksz+1)+x];
     for (int n=0;n<numblks;n++)
-      swap(odest[n].hshift,odest[n].vshift);
+      std::swap(odest[n].hshift,odest[n].vshift);
     delete[] orientvec;
     orientvec = odest;
   }
-  swap(h,w);
+  std::swap(h,w);
   return;
 }
 // Given a shift (sigma) expressed in 1/oprec units, kernel_selection
@@ -396,15 +396,15 @@ void dwtnode::kernel_selection(int n, int sigma, direction dir, int &z,
 {
 	if (ofield.oprec > lutprec)
   {
-    cerr << "Interpolation LUT has insufficient precision for"
-      << " current orientation field." << endl;
+    std::cerr << "Interpolation LUT has insufficient precision for"
+      << " current orientation field." << std::endl;
     exit(1);
   }
   if ((lutprec%ofield.oprec)!=0)
   {
-    cerr << "Interpolation LUT must have a precision that is "
+    std::cerr << "Interpolation LUT must have a precision that is "
       << "divisible into the orientation field's shift precision."
-      << endl;
+      << std::endl;
     exit(2);
   }
 	const int N = (dwtlevel[dir]==0)?splines_extent:
@@ -436,13 +436,13 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
 { // error checking
   if (dir==both)
   {
-    cerr << "apply_oriented_LHlift: only horizontal or vertical allowed" << endl;
+    std::cerr << "apply_oriented_LHlift: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   if (dwtlevel[!dir]>2)
   {
-    cerr << "No inband shift kernel has been defined for "
-      << dwtlevel[!dir] << " levels depth" << endl;
+    std::cerr << "No inband shift kernel has been defined for "
+      << dwtlevel[!dir] << " levels depth" << std::endl;
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
@@ -500,13 +500,13 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
 {
   if (dir==both)
   {
-    cerr << "apply_HLlift: only horizontal or vertical allowed" << endl;
+    std::cerr << "apply_HLlift: only horizontal or vertical allowed" << std::endl;
     exit(1);
   }
   if (dwtlevel[!dir]>2)
   {
-    cerr << "No inband shift kernel has been defined for "
-      << dwtlevel[!dir] << " levels depth" << endl;
+    std::cerr << "No inband shift kernel has been defined for "
+      << dwtlevel[!dir] << " levels depth" << std::endl;
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
@@ -588,7 +588,7 @@ void dwtnode::oriented_analysis(direction dir)
     apply_gain_factors(0.812893066,0.615087052,dir);
     break;
   default:
-    cerr << "DWT kernel undefined!" << endl;
+    std::cerr << "DWT kernel undefined!" << std::endl;
     exit(1);
     break;
   }
@@ -619,7 +619,7 @@ void dwtnode::oriented_synthesis(direction dir)
     apply_oriented_LHlift(1.586134342,dir);
     break;
   default:
-    cerr << "DWT kernel undefined!" << endl;
+    std::cerr << "DWT kernel undefined!" << std::endl;
     exit(1);
     break;
   }

@@ -12,7 +12,7 @@ double mse(dwtnode &a, dwtnode &b)
   if ((a.h>>a.dwtlevel[vertical]!=b.h>>b.dwtlevel[vertical])
     ||(a.w>>a.dwtlevel[horizontal]!=b.w>>b.dwtlevel[horizontal]))
   {
-    cerr << "Images must have identical h&w dimensions." << endl;
+    std::cerr << "Images must have identical h&w dimensions." << std::endl;
     exit(1);
   }
   double apix, bpix, acc=0;
@@ -71,7 +71,7 @@ void dwtnode::shrink(int depth)
   ofield.h=h;
   ofield.w=w;
   if (ofield.blksz%(1<<depth)!=0)
-    cerr << "Warning: orientation field is invalid" << endl;
+    std::cerr << "Warning: orientation field is invalid" << std::endl;
   ofield.blksz >>= depth;
 }
 void dwtnode::halveimage()
@@ -80,12 +80,12 @@ void dwtnode::halveimage()
   ofield.w=w=(w+1)/2;
   if (ofield.blksz==1)
   {
-    cerr << "Warning: orientation field incorrect now" << endl;
+    std::cerr << "Warning: orientation field incorrect now" << std::endl;
   }
   else if (ofield.blksz%2!=0) // blksz needs to be multiple of 2
   {
-    cerr << "Subsampling of shift field is not defined for ";
-    cerr << "block size " << ofield.blksz << endl;
+    std::cerr << "Subsampling of shift field is not defined for "
+      "block size " << ofield.blksz << std::endl;
     exit(1);
   }
   else
@@ -93,7 +93,7 @@ void dwtnode::halveimage()
 }
 // call the appropriate batch file of kdu_compress and kdu_expand commands
 // also writes to fout the tested resolution and dwt filters used
-void dwtnode::call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &fout)
+void dwtnode::call_batch(testmode mode, char *Cdecomp, bool halfres, std::ofstream &fout)
 {
   char *dwtmode_strings[]={" w5x3"," w9x7"," no dwt"};
   std::stringstream batch;
@@ -109,28 +109,39 @@ void dwtnode::call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &f
     batch << "pyramid.bat";
   else
     batch << "out.bat";
-  fout <<dwtmode_strings[txbase]<<" Cdecomp:"<< Cdecomp << endl;
+  fout <<dwtmode_strings[txbase]<<" Cdecomp:"<< Cdecomp << std::endl;
   batch <<" "<<h<<" "<<w<<" "<<txbase<<" \""<<Cdecomp<<"\"";
   system(batch.str().c_str());
 }
-void dwtnode::call_batch(testmode mode, char *Cdecomp, int depth, int layer, ofstream &fout)
+void dwtnode::call_batch(testmode mode, char *Cdecomp, int depth, int layer, std::ofstream &fout)
 {
-  char *dwtmode_strings[]={" w5x3"," w9x7"," no dwt"};
+  char *kdudwt_strings[]={" w5x3"," w9x7"};
+  int dwt_mode = (txbase==w5x3)?0:1;
   std::stringstream batch;
-  if (layer==1)
+  if (mode==pyramid_test)
   {
-    batch << "halfres.bat";
-    fout << " half resolution";
-    for (;(*Cdecomp!=',')&&(*Cdecomp!='\0');Cdecomp++)
-      ; // skip the first level of Cdecomp
-    Cdecomp++;
-  }
-  else if (mode==pyramid_test)
     batch << "pyramid.bat"; // select based on layer and depth
+  }
   else
-    batch << "out.bat";
-  fout <<dwtmode_strings[txbase]<<" Cdecomp:"<< Cdecomp << endl;
-  batch <<" "<<h<<" "<<w<<" "<<txbase<<" \""<<Cdecomp<<"\"";
+  {
+    if (layer==0)
+      batch << "out.bat";
+    else if (layer==1)
+    {
+      batch << "halfres.bat";
+      fout << "half resolution";
+      for (;(*Cdecomp!=',')&&(*Cdecomp!='\0');Cdecomp++)
+        ; // skip the first level of Cdecomp
+      Cdecomp++;
+    }
+    else
+    {
+      std::cerr << "Layer " << layer << " not yet supported" << std::endl;
+      exit(1);
+    }
+  }
+  fout <<kdudwt_strings[dwt_mode]<<" Cdecomp:"<< Cdecomp << std::endl;
+  batch <<" "<<h<<" "<<w<<" "<<dwt_mode<<" \""<<Cdecomp<<"\"";
   system(batch.str().c_str());
 }
 // wrappers for analysis-encode-decode-synthesis experimentation
@@ -153,14 +164,14 @@ void dwtnode::rawl_encode(int depth, int layer, bool adapt)
 }
 void dwtnode::rawl_decode(char *bitrate, bool halfres, bool adapt)
 {
-  string fname = "tmp\\out";
+  std::string fname = "tmp\\out";
   fname += bitrate;
   fname += ".rawl";
   rawlread((char *)fname.c_str());
 }
 void dwtnode::rawl_decode(char *bitrate, int depth, int layer, bool adapt)
 {
-  string fname = "tmp\\out";
+  std::string fname = "tmp\\out";
   fname += bitrate;
   fname += ".rawl";
   rawlread((char *)fname.c_str());
@@ -399,6 +410,16 @@ void dwtnode::hpfprelift_encode(bool halfres, bool adapt)
 }
 void dwtnode::hpfprelift_encode(int depth, int layer, bool adapt)
 {
+  dwtnode *curr = this;
+  for (int i=0;i<depth;i++,curr=curr->subbands[0])
+  {
+    curr->hpf_oriented_analysis(both,adapt);
+    curr->extract_subband(0);
+  }
+  for (int i=depth-1;i<=layer;i--)
+  {
+
+  }
 }
 void dwtnode::hpfprelift_decode(char *bitrate, bool halfres, bool adapt)
 {
