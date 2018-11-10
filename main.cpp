@@ -83,9 +83,9 @@ int compresstest(int argc, _TCHAR* argv[])
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
-  bool halfres=false; // compute mses for half resolution instead
+  bool halfres=true; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=orient;
+  testmode mode=packliftorient2;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)

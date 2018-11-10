@@ -74,6 +74,7 @@ public:
   void rawlread(char *fname, int hset, int wset, int expi=6);
   void rawlread(char *fname, int expi=6);
   bool yuvstreamread(ifstream &yuvin);
+  bool uyvystreamread(ifstream &uyvyin);
   void pgmwrite(char *fname);
   void rawlwrite(char *fname, int expi=6, bool allbands=false);
   void csvwrite(char *fname);

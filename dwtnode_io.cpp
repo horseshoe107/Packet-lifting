@@ -215,6 +215,31 @@ bool dwtnode::yuvstreamread(ifstream &yuvin)
     ofield.clearfield(h,w);
   return yuvin.good();
 }
+bool dwtnode::uyvystreamread(ifstream &uyvyin)
+{
+  dwtlevel[vertical]=0; dwtlevel[horizontal]=0;
+  char tmp;
+  if (pixels!=NULL)
+    delete[] pixels;
+  pixels = new double[h*w];
+  for (int n=0;n<h*w;n++)
+  {
+    uyvyin.ignore(1); // ignore colour components
+    uyvyin.read(&tmp,1);
+    if (tmp<0)
+      pixels[n] = (double) tmp+256;
+    else pixels[n] = (double) tmp;
+  }
+  for (int n=0;n<4;n++)
+    if (subbands[n]!=NULL)
+    {
+      delete subbands[n];
+      subbands[n]=NULL;
+    }
+  if ((h!=ofield.h)||(w!=ofield.w))
+    ofield.clearfield(h,w);
+  return uyvyin.good();
+}
 void dwtnode::pgmwrite(char *fname)
 {
   const int verstep = 1<<dwtlevel[vertical];
