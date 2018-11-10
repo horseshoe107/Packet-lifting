@@ -107,7 +107,7 @@ int compresstest(int argc, char* argv[])
   txtype txtest = w5x3;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
-  int depth=2; // number of layers of scalability to create
+  int depth=1; // number of layers of scalability to create
   int layer=0; // compute mses for encoding layer (0 is full resolution)
   bool imageout=(layer>0); // dump out compressed, decoded images and collate
   testmode mode=orient;

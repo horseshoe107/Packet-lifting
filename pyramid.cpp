@@ -98,20 +98,6 @@ void dwtnode::pyramid_synthesis()
   }
   return;
 }
-void dwtnode::pyramid_encode(bool halfres, bool adapt)
-{
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
-  downsample_lift(true);
-  upsample_lift(true);
-  if (halfres)
-    subbands[0]->rawlwrite("tmp\\out.rawl");
-  else
-  {
-    rawlwrite("tmp\\diff.rawl");
-    subbands[0]->rawlwrite("tmp\\coarse.rawl");
-  }
-  return;
-}
 void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
 {
   switch (txbase)
@@ -136,22 +122,6 @@ void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
     }
   }
   curr->rawlwrite("tmp\\coarse.rawl");
-  return;
-}
-void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
-{
-  if (halfres)
-  {
-    rawl_decode(bitrate,halfres,adapt);
-    return;
-  }
-  std::string d_fname = "tmp\\diff";
-  d_fname = d_fname + bitrate + ".rawl";
-  rawlread(d_fname.c_str());
-  std::string c_fname = "tmp\\coarse";
-  c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
-  upsample_lift(false);
   return;
 }
 void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
@@ -183,72 +153,7 @@ void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
   c_fname = c_fname + bitrate + ".rawl";
   curr->rawlread(c_fname.c_str());
   dwtlevel[vertical]=dwtlevel[horizontal]=depth-layer;
-  for (int i=depth-1;i>=layer;i--)
-  {
+  for (int i=depth;i!=layer;i--)
     pyramid_synthesis();
-  }
-}
-void dwtnode::lp3x2_encode(bool halfres, bool adapt)
-{
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
-  downsample_lift(true);
-  upsample_lift(true);
-  downsample_lift(true);
-  if (halfres)
-    subbands[0]->rawlwrite("tmp\\out.rawl");
-  else
-  {
-    rawlwrite("tmp\\diff.rawl");
-    subbands[0]->rawlwrite("tmp\\coarse.rawl");
-  }
-  return;
-}
-void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
-{
-  if (halfres)
-  {
-    rawl_decode(bitrate,halfres,adapt);
-    return;
-  }
-  std::string d_fname = "tmp\\diff";
-  d_fname = d_fname + bitrate + ".rawl";
-  rawlread((char *)d_fname.c_str());
-  std::string c_fname = "tmp\\coarse";
-  c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
-  downsample_lift(false);
-  upsample_lift(false);
-  return;
-}
-void dwtnode::lp2x3_encode(bool halfres, bool adapt)
-{
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
-  downsample_lift(true);
-  upsample_lift(true);
-  if (halfres)
-    subbands[0]->rawlwrite("tmp\\out.rawl");
-  else
-  {
-    rawlwrite("tmp\\diff.rawl");
-    subbands[0]->rawlwrite("tmp\\coarse.rawl");
-  }
-  return;
-}
-void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
-{
-  if (halfres)
-  {
-    rawl_decode(bitrate,halfres,adapt);
-    return;
-  }
-  std::string d_fname = "tmp\\diff";
-  d_fname = d_fname + bitrate + ".rawl";
-  rawlread((char *)d_fname.c_str());
-  std::string c_fname = "tmp\\coarse";
-  c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
-  upsample_lift(false);
-  downsample_lift(false);
-  upsample_lift(false);
   return;
 }

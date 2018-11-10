@@ -131,14 +131,8 @@ public:
   void downsample_lift(bool analysis);
   void pyramid_analysis();
   void pyramid_synthesis();
-  void pyramid_encode(bool halfres, bool adapt);
-  void pyramid_decode(char *bitrate, bool halfres, bool adapt);
   void pyramid_encode(int depth=0, int layer=0, bool adapt=false);
   void pyramid_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
-  void lp3x2_encode(bool halfres, bool adapt=false);
-  void lp3x2_decode(char *bitrate, bool halfres, bool adapt=false);
-  void lp2x3_encode(bool halfres, bool adapt=false);
-  void lp2x3_decode(char *bitrate, bool halfres, bool adapt=false);
   // packet lifting functions (defined in packlift.cpp)
   friend void packet_transfer(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
@@ -189,8 +183,6 @@ public:
   void packlift_orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void hpfprelift_encode(int depth=0, int layer=0, bool adapt=false);
   void hpfprelift_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
-  void hpfprelift_2layer_encode(bool halfres=false, bool adapt=false);
-  void hpfprelift_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
 // data members
 protected:
   int h,w; // height and width of the image
