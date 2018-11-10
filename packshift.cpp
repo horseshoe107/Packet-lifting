@@ -241,11 +241,11 @@ int hpftest(int argc, _TCHAR* argv[])
   //in.ofield.init_orient("sideinf\\barb4.dat");
   in.ofield.init_orient(4,8,8,4,0);
   in.ofield.setaffinefield();
-  in.analysis(vertical);
+  //in.analysis(vertical);
   //in.oriented_analysis(shft1,vertical);
-  //in.hpf_oriented_analysis(shft1,vertical);
+  in.hpf_oriented_analysis(shft1,vertical);
   in.analysis(horizontal);
-  in.pgmwrite("baseline_LL1.pgm");
+  in.pgmwrite("testagain_LL1.pgm");
   return 0;
 }
 int _tmain(int argc, _TCHAR* argv[])

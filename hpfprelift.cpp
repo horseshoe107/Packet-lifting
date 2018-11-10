@@ -86,8 +86,9 @@ void dwtnode::hpf_HLlift(double a, direction dir)
         tempbuff[(w>>operating_depth)+H0_HPF_EXTENT+x]
           = tempbuff[(w>>operating_depth)+H0_HPF_EXTENT-1];
       }
-      for (int xsub=0;xsub<(w>>operating_depth);xsub++)
-      {
+      for (int xsub=0;xsub<(w>>operating_depth);xsub+=2)
+      { // find low-pass projection in the baseband by calculating
+        // intermediate even (low-pass) samples
         double v = 0;
         // apply bandpass + low-pass analysis composite filter
         for (int n=-H0_HPF_EXTENT;n<=H0_HPF_EXTENT;n++)
@@ -101,30 +102,32 @@ void dwtnode::hpf_HLlift(double a, direction dir)
         }
       }
     }
-  //else // horizontal
-  //  for (int y=0;y<h;y+=t)
-  //    for (int x=0;x<w;x+=2*s) // lifting to the L cols
-  //    {
-  //      sigma0 = ofield.retrieve(y,x-1,horizontal);
-  //      sigma1 = ofield.retrieve(y,x,horizontal);
-  //      for (int n=1;n<s;n++)
-  //      { // accumulate relative shifts of subsequent col pairs
-  //        sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
-  //        sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
-  //      }
-  //      kernel_selection(y,-sigma0,z0,sker0,ksig0);
-  //      kernel_selection(y,sigma1,z1,sker1,ksig1);
-  //      if (x==0) // replicate left edge
-  //        pixels[y*w+x] += 2*a*
-  //            filt(&k->lut[sker1],y*w+x+s,-z1,N,vertical,ksig1);
-  //      else if (x==last) // replicate right edge
-  //        pixels[y*w+x] += 2*a*
-  //            filt(&k->lut[sker0],y*w+x-s,-z0,N,vertical,ksig0);
-  //      else
-  //        pixels[y*w+x] += a*
-  //          ( filt(&k->lut[sker0],y*w+x-s,-z0,N,vertical,ksig0)
-  //          + filt(&k->lut[sker1],y*w+x+s,-z1,N,vertical,ksig1));
-  //    }
+  else // horizontal
+    for (int x=0;x<w;x+=2*s) // lifting to the L cols
+    {
+      for (int y=0;y<h;y+=2*t) // only lifting to the L (orthogonal) rows as well!
+      {
+        sigma0 = ofield.retrieve(y,x-1,horizontal);
+        sigma1 = ofield.retrieve(y,x,horizontal);
+        for (int n=1;n<s;n++)
+        { // accumulate relative shifts of subsequent col pairs
+          sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
+          sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
+        }
+        kernel_selection(y,-sigma0,z0,sker0,ksig0);
+        kernel_selection(y,sigma1,z1,sker1,ksig1);
+        if (x==0) // replicate left edge
+          pixels[y*w+x] += 2*a*
+              filt(&k->lut[sker1],y*w+x+s,-z1,N,vertical,ksig1);
+        else if (x==last) // replicate right edge
+          pixels[y*w+x] += 2*a*
+              filt(&k->lut[sker0],y*w+x-s,-z0,N,vertical,ksig0);
+        else
+          pixels[y*w+x] += a*
+            ( filt(&k->lut[sker0],y*w+x-s,-z0,N,vertical,ksig0)
+            + filt(&k->lut[sker1],y*w+x+s,-z1,N,vertical,ksig1));
+      }
+    }
   delete [] tempbuff;
   return;
 }
@@ -139,7 +142,6 @@ void dwtnode::hpf_oriented_analysis(shker &shftkern, direction dir)
     apply_oriented_HLlift(0.25,dir);
     hpf_HLlift(-0.25,dir);
     apply_gain_factors(1,0.5,dir);
-    cout << "stuff is happening" << endl;
     break;
   //case w9x7:
   //  apply_oriented_LHlift(-1.586134342,dir);
@@ -153,6 +155,12 @@ void dwtnode::hpf_oriented_analysis(shker &shftkern, direction dir)
     exit(2);
   }
   dwtlevel[dir]++;
+  return;
+}
+void dwtnode::hpf_oriented_analysis(shker &shftbase, shker &shftpoly2)
+{
+  hpf_oriented_analysis(shftbase, vertical);
+  hpf_oriented_analysis(shftpoly2, horizontal);
   return;
 }
 void dwtnode::hpf_oriented_synthesis(shker &shftkern, direction dir)
@@ -172,4 +180,9 @@ void dwtnode::hpf_oriented_synthesis(shker &shftkern, direction dir)
     cerr << "No wavelet kernels other than 5x3 permitted" << endl;
     exit(2);
   }
+}
+void dwtnode::hpf_oriented_synthesis(shker &shftbase, shker &shftpoly2)
+{
+  hpf_oriented_synthesis(shftpoly2, horizontal);
+  hpf_oriented_synthesis(shftbase, vertical);
 }
