@@ -108,7 +108,7 @@ int compresstest(int argc, char* argv[])
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   int depth=1; // number of layers of scalability to create
-  int layer=0; // compute mses for encoding layer (0 is full resolution)
+  int layer=1; // compute mses for encoding layer (0 is full resolution)
   bool imageout=(layer>0); // dump out compressed, decoded images and collate
   testmode mode=pyramid_test;
   dwtnode in(currfile,txtest);
@@ -238,7 +238,7 @@ int compresstest(int argc, char* argv[])
   }
   {
     (in.*encode_ptr)(depth,layer,adapt);
-    in.call_batch(mode,Cdecomp,halfres,dout); // run kdu_compress
+    in.call_batch(mode,Cdecomp,depth,layer,dout); // run kdu_compress
     in.shrink(layer); // reduce dimensions if layer>0
     //// test perfect reconstruction
     (in.*decode_ptr)("",depth,layer,adapt);
@@ -260,6 +260,7 @@ int compresstest(int argc, char* argv[])
     if (imageout) in.pgmwrite("tmp\\recon0.8.pgm");
     dout << mse(ref,in) << ' ';
     (in.*decode_ptr)("1.0",depth,layer,adapt);
+    dout << mse(ref,in) << std::endl;
     if (imageout)
     {
       if (layer==1)
@@ -271,7 +272,6 @@ int compresstest(int argc, char* argv[])
         "tmp\\recon0.6.pgm,tmp\\recon0.8.pgm,tmp\\recon1.0.pgm"
         " -o tmp\\recon.jp2 Creversible=yes Cycc=no");
     }
-    dout << mse(ref,in) << std::endl;
   }
   dout.close();
   return 0;

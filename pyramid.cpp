@@ -128,10 +128,12 @@ void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
   for (int i=0;i<depth;i++,curr=curr->subbands[0])
   {
     curr->pyramid_analysis();
-    std::string d_fname = "tmp\\diff";
-    d_fname += i + ".rawl";
     if (i >= layer) // write out all layers needed to reconstruct
-      curr->rawlwrite(d_fname.c_str());
+    { // highest resolution is always diff0.rawl
+      std::stringstream d_fname;
+      d_fname << "tmp\\diff" << (i-layer) << ".rawl";
+      curr->rawlwrite(d_fname.str().c_str(),6,true);
+    }
   }
   curr->rawlwrite("tmp\\coarse.rawl");
   return;
@@ -167,11 +169,12 @@ void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
   dwtnode *curr = this;
   for (int i=layer;i<depth;i++,curr=curr->subbands[0])
   {
-    std::string d_fname = "tmp\\diff";
-    d_fname += i;
-    d_fname = d_fname + bitrate + ".rawl";
-    rawlread(d_fname.c_str());
-    curr->rawlread(d_fname.c_str());
+    std::stringstream d_fname;
+    d_fname << "tmp\\diff" << (i-layer);
+    if (bitrate[0]!='\0')
+      d_fname << "_" << bitrate;
+    d_fname << ".rawl";
+    curr->rawlread(d_fname.str().c_str());
     if (curr->subbands[0]!=nullptr)
       delete subbands[0];
     curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,txbase,true);
@@ -182,10 +185,6 @@ void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
   dwtlevel[vertical]=dwtlevel[horizontal]=depth-layer;
   for (int i=depth-1;i>=layer;i--)
   {
-    //curr=this;
-    //for (int n=0;n<i;n++)
-    //  curr = curr->subbands[0];
-    //curr->pyramid_synthesis();
     pyramid_synthesis();
   }
 }

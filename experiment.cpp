@@ -18,19 +18,19 @@ double mse(dwtnode &a, dwtnode &b)
   double apix, bpix, acc=0;
   int adepth=0,bdepth=0;
   dwtnode *aptr, *bptr;
-  for (aptr=&a;aptr->subbands[0]!=nullptr;adepth++)
+  for (aptr=&a; (adepth<a.dwtlevel[vertical]) && (aptr->subbands[0]!=nullptr); adepth++)
     aptr = aptr->subbands[0];
-  for (bptr=&b;bptr->subbands[0]!=nullptr;bdepth++)
+  for (bptr=&b; (bdepth<b.dwtlevel[vertical]) && (bptr->subbands[0]!=nullptr); bdepth++)
     bptr = bptr->subbands[0];
   int aystep=1<<(a.dwtlevel[vertical]-adepth);
   int axstep=1<<(a.dwtlevel[horizontal]-adepth);
   int bystep=1<<(b.dwtlevel[vertical]-bdepth);
   int bxstep=1<<(b.dwtlevel[horizontal]-bdepth);
-  for (int ay=0,by=0;ay<a.h;ay+=aystep,by+=bystep)
-    for (int ax=0,bx=0;ax<a.w;ax+=axstep,bx+=bxstep)
+  for (int ay=0,by=0;ay<aptr->h;ay+=aystep,by+=bystep)
+    for (int ax=0,bx=0;ax<aptr->w;ax+=axstep,bx+=bxstep)
     {
-      apix = aptr->pixels[ay*(a.w)+ax];
-      bpix = bptr->pixels[by*(b.w)+bx];
+      apix = aptr->pixels[ay*(aptr->w)+ax];
+      bpix = bptr->pixels[by*(bptr->w)+bx];
       apix = (apix<0)?0:(apix>255)?255:apix; // ensure data is
       bpix = (bpix<0)?0:(bpix>255)?255:bpix; // [0,255] bounded
       acc += (apix-bpix)*(apix-bpix);
@@ -118,30 +118,28 @@ void dwtnode::call_batch(testmode mode, char *Cdecomp, int depth, int layer, std
   char *kdudwt_strings[]={" w5x3"," w9x7"};
   int dwt_mode = (txbase==w5x3)?0:1;
   std::stringstream batch;
+  // skip levels from Cdecomp according to layer
+  for (int i=0;i<layer;i++)
+  { 
+    for (;(*Cdecomp!=',')&&(*Cdecomp!='\0');Cdecomp++)
+        ;
+    if (*Cdecomp==',')
+      Cdecomp++;
+  }
+  int layerh = h>>layer;
+  int layerw = w>>layer;
   if (mode==pyramid_test)
-  {
-    batch << "pyramid.bat"; // select based on layer and depth
+  { // need to select batch file depending on number of files to encode
+    batch << "pyramid_" << (depth-layer) << ".bat"; // select based on layer and depth
+    dwt_mode = 0; // select which wavelet kernel is used by kdu_compress
   }
   else
   {
-    if (layer==0)
-      batch << "out.bat";
-    else if (layer==1)
-    {
-      batch << "halfres.bat";
-      fout << "half resolution";
-      for (;(*Cdecomp!=',')&&(*Cdecomp!='\0');Cdecomp++)
-        ; // skip the first level of Cdecomp
-      Cdecomp++;
-    }
-    else
-    {
-      std::cerr << "Layer " << layer << " not yet supported" << std::endl;
-      exit(1);
-    }
+    batch << "out.bat";
   }
-  fout <<kdudwt_strings[dwt_mode]<<" Cdecomp:"<< Cdecomp << std::endl;
-  batch <<" "<<h<<" "<<w<<" "<<dwt_mode<<" \""<<Cdecomp<<"\"";
+  fout << "depth " << depth << " layer " << layer << kdudwt_strings[dwt_mode]
+    << " Cdecomp=" << Cdecomp << std::endl;
+  batch <<" "<<layerh<<" "<<layerw<<" "<<dwt_mode<<" \""<<Cdecomp<<"\"";
   system(batch.str().c_str());
 }
 // wrappers for analysis-encode-decode-synthesis experimentation
