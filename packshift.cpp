@@ -1,35 +1,5 @@
 #include "stdafx.h"
 #include "dwtnode.h"
-int testreconstruction(int argc, _TCHAR* argv[])
-{
-  shker shftbase("sideinf\\baseker.dat"); // create shift lut objects
-  shker shftpoly2("sideinf\\v2poly.dat");
-  shker shftpoly4("sideinf\\v4packnormalised.dat");
-  packlift_filters filts("sideinf\\icip_aa_filters.dat");
-  //char currfile[] = "C:\\Data\\Images\\nonstandard\\thin_horz_gen.pgm";
-  char currfile[] = "C:\\Data\\Images\\barbara.pgm";
-  //char currfile[] = "C:\\Data\\Images\\nonstandard\\nyquist_horz_gen.pgm";
-  dwtnode in(currfile,w9x7);
-  //in.ofield.init_orient("sideinf\\horz_generated.dat");
-  //in.ofield.init_orient("sideinf\\horz_generated_wrong.dat");
-  //in.ofield.init_orient("sideinf\\barb4.dat");
-
-  // option 2: reconstructs LL1 using only its child subbands
-  in.oriented_packet_analysis(shftbase,shftpoly4);
-  in.extract_subband(0);
-  in.subbands[0]->ofield.inherit(in.ofield);
-  in.subbands[0]->oriented_synthesis(shftbase,shftpoly2);
-  in.subbands[0]->pgmwrite("barb_rightleg.pgm");
-
-  //in.oriented_packet_analysis(shftbase,shftpoly4);
-  //in.operating_depth++;
-  //in.oriented_synthesis(shftbase,shftpoly4);
-  //in.pgmwrite("test_option1.pgm");
-
-  //in.packet_synthesis(both);
-  //in.rawlwrite("tmp\\out.rawl");
-	return 0;
-}
 int antialiasing(int argc, _TCHAR* argv[])
 {
   packlift_filters filts("sideinf\\icip_aa_filters.dat");
@@ -74,13 +44,6 @@ int compresstest(int argc, _TCHAR* argv[])
     est.choose_orient();
     est.ofield.orientwrite("sideinf\\tmp.dat");
     est.ofield.orient_csvout();
-  }
-  if (false){
-    est2orient est2(currfile,w9x7);
-    est2.init_orient(4,8,16);
-    est2.choose_orient();
-    est2.ofield.orientwrite("sideinf\\tmp2.dat");
-    est2.ofield.orient_csvout();
   }
   dwtnode ref(currfile,w9x7);
   dwtnode in(currfile,w9x7);

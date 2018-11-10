@@ -14,9 +14,9 @@ inline double round(double x){
 // integer division with fractions rounded towards -inf
 inline int divfloor(int num, int den)
 {
-  if ((num<0)&&(den>=0))
+  if ((num<0)&&(den>0))
     return (num - den+1)/den;
-  else if ((num>=0)&&(den<0))
+  else if ((num>0)&&(den<0))
     return (num - den-1)/den;
   else
     return num/den;

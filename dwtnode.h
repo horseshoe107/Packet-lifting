@@ -51,18 +51,13 @@ public:
   // returns the shift (in 1/oprec units) corresponding to
   // the oriented transform at pixel location (y,x).
   int retrieve(int y, int x, direction=vertical);
-  // returns the shift corresponding to orientation block n
-  inline int retrieve(int n, direction dir=vertical)
-  {
-    return (dir==vertical)?orientvec[n].hshift:orientvec[n].vshift;
-  }
   inline int block_retrieve(int y, int x, direction dir)
   {
     if (y<0)        y=0;
     else if (y>=h)  y=h-1;
     if (x<0)        x=0;
     else if (x>=w)  x=w-1;
-    int nblk = (y/blksz)*(w/blksz) +x/blksz;
+    int nblk = (y/blksz)*((w-1)/blksz+1) +x/blksz;
     return (dir==vertical)?orientvec[nblk].hshift:orientvec[nblk].vshift;
   }
   int affine_retrieve(int y, int x, direction dir);
@@ -77,7 +72,7 @@ private:
   enum {blockgrid, affinegrid} fieldtype;
   // This vector should have (N/blksz^2) elements, where N is the
   // number of elements in image, and blksz^2 is the size of an
-  // "orientation block" - in the most precise case, this could be 1.
+  // "orientation block" - 1 pixel in the most precise case.
   // The value at orientvec[n] refers to the relative shift estimated
   // between pairs of rows belonging to orientation block n. For a
   // block with blksz number of rows, the orientation applies to
@@ -216,9 +211,9 @@ protected:
   int dwtlevel[2];
   // when performing a transform along dimension x, operations will
   // apply to a subset of the pixels in dimension x as indicated by
-  // dwtlevel[x]. however, subsampling in the orthogonal direction
-  // is controlled by operating_depth. by default, this is set to 0,
-  // indicating no subsampling.
+  // dwtlevel[x] - only every 2^dwtlevel[x]th pixel is processed.
+  // concurrent subsampling in the orthogonal direction is controlled
+  // by operating_depth.
   int operating_depth;
   enum dwttype dwtbase;
   double *pixels;

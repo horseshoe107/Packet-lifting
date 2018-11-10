@@ -36,33 +36,33 @@ int orientationfield::retrieve(int y, int x, direction dir)
 }
 int orientationfield::affine_retrieve(int y, int x, direction dir)
 {
-  const int o_w = w/blksz;
-  bool outofbounds;
-  int xnodeL = divfloor((x-blksz/2),blksz);
-  int ynodeL = divfloor((y-blksz/2),blksz);
-  outofbounds = (xnodeL<0)||(xnodeL>w/blksz-2);
-  xnodeL = (xnodeL<0)?0:(xnodeL>w/blksz-1)?w/blksz-1:xnodeL;
+  const int o_w = (w-1)/blksz+1; // orientation field width
+  const int o_h = (h-1)/blksz+1; // orientation field height
+  int xnodeL = (x-blksz/2)/blksz; // location of nearest node to the left (lower node)
+  int ynodeL = (y-blksz/2)/blksz;
+  bool outofbounds = (xnodeL<0)||(xnodeL>(o_w-2));
+  xnodeL = (xnodeL<0)?0:(xnodeL>(o_w-1))?o_w-1:xnodeL;
   int xnodeU = outofbounds?xnodeL:xnodeL+1;
-  outofbounds = (ynodeL<0)||(ynodeL>h/blksz-2);
-  ynodeL = (ynodeL<0)?0:(ynodeL>h/blksz-1)?h/blksz-1:ynodeL;
+  outofbounds = (ynodeL<0)||(ynodeL>(o_h-2));
+  ynodeL = (ynodeL<0)?0:(ynodeL>o_h-1)?o_h-1:ynodeL;
   int ynodeU = outofbounds?ynodeL:ynodeL+1;
-  double s1 = (x-xnodeL*blksz-blksz/2+0.5)/blksz; // horizontal normalised displacement
-  double s2 = (y-ynodeL*blksz-blksz/2+0.5)/blksz; // vertical normalised displacement
+  double s1 = (x-xnodeL*blksz-0.5*blksz+0.5)/blksz; // normalised distance from the horizontal L node
+  double s2 = (y-ynodeL*blksz-0.5*blksz+0.5)/blksz; // vertical normalised displacement
   int orientLL = (dir==vertical)?
-    orientvec[ynodeL*w/blksz+xnodeL].hshift
-    :orientvec[ynodeL*w/blksz+xnodeL].vshift;
+    orientvec[ynodeL*o_w+xnodeL].hshift
+    :orientvec[ynodeL*o_w+xnodeL].vshift;
   int orientLU = (dir==vertical)?
-    orientvec[ynodeU*w/blksz+xnodeL].hshift
-    :orientvec[ynodeU*w/blksz+xnodeL].vshift;
+    orientvec[ynodeU*o_w+xnodeL].hshift
+    :orientvec[ynodeU*o_w+xnodeL].vshift;
   int orientUL = (dir==vertical)?
-    orientvec[ynodeL*w/blksz+xnodeU].hshift
-    :orientvec[ynodeL*w/blksz+xnodeU].vshift;
+    orientvec[ynodeL*o_w+xnodeU].hshift
+    :orientvec[ynodeL*o_w+xnodeU].vshift;
   int orientUU = (dir==vertical)?
-    orientvec[ynodeU*w/blksz+xnodeU].hshift
-    :orientvec[ynodeU*w/blksz+xnodeU].vshift;
-  if ((s1+s2) < 1)
+    orientvec[ynodeU*o_w+xnodeU].hshift
+    :orientvec[ynodeU*o_w+xnodeU].vshift;
+  if ((s1+s2) < 1) // top left triangle affine interpolation
     return (int) round(orientLL + s1*(orientUL-orientLL) + s2*(orientLU-orientLL));
-  else
+  else // bottom right triangle affine interpolation
     return (int) round(orientUU + (1-s1)*(orientLU-orientUU) + (1-s2)*(orientUL-orientUU));
 }
 // this function should only be called when dwtnode::transpose
@@ -71,11 +71,11 @@ void orientationfield::transpose()
 {
   if (orientvec != NULL)
   {
-    orientation *odest = new orientation[(w/blksz)*(h/blksz)];
-    for (int y=0;y<(h/blksz);y++)
-      for (int x=0;x<(w/blksz);x++)
-        odest[x*(h/blksz)+y]=orientvec[y*(w/blksz)+x];
-    for (int n=0;n<(h/blksz)*(w/blksz);n++)
+    orientation *odest = new orientation[numblks];
+    for (int y=0;y<=(h-1)/blksz;y++)
+      for (int x=0;x<=(w-1)/blksz;x++)
+        odest[x*((h-1)/blksz+1)+y]=orientvec[y*((w-1)/blksz+1)+x];
+    for (int n=0;n<numblks;n++)
       swap(odest[n].hshift,odest[n].vshift);
     delete[] orientvec;
     orientvec = odest;

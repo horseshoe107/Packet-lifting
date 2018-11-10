@@ -88,7 +88,7 @@ shker::shker(char *fname)
   int numvecs = lutsize/veclen/p/p;
   lutprec = (numvecs-1)*2;
 }
-// Initialise the orientation field with zero shifts. This
+// Initialise the orientation field with preset shifts. This
 // should be called prior to orientation estimation.
 void orientationfield::init_orient
 (int setblksz, int setprec, int setmaxshift, int defaulthorzshft, int defaultvertshft)
@@ -96,7 +96,7 @@ void orientationfield::init_orient
   blksz = setblksz;
   oprec = setprec;
   maxshift = setmaxshift;
-  numblks = (h/blksz)*(w/blksz);
+  numblks = ((h-1)/blksz+1)*((w-1)/blksz+1);
   if (orientvec!=NULL)
     delete[] orientvec;
   orientvec = new orientation[numblks];
@@ -122,7 +122,7 @@ void orientationfield::init_orient(char *fname)
     cerr << "Orientation field must have dimensions matching the image" << endl;
     exit(1);
   }
-  numblks=(h/blksz)*(w/blksz);
+  numblks=((h-1)/blksz+1)*((w-1)/blksz+1);
   if (orientvec!=NULL)
     delete[] orientvec;
   orientvec = new orientation[numblks];
@@ -182,12 +182,10 @@ void orientationfield::orientwrite(char *fname)
   // write out header
   fout << w << ' ' << h << ' ' << blksz << ' '
     << oprec << ' ' << maxshift << endl;
-  for (int y=0;y<(h/blksz);y++)
+  for (int n=0;n<numblks;n++)
   {
-    for (int x=0;x<(w/blksz);x++)
-      fout << (int)orientvec[y*(w/blksz)+x].hshift << ','
-        << (int)orientvec[y*(w/blksz)+x].vshift << ' ';
-    fout << endl;
+    fout << (int)orientvec[n].hshift << ','
+        << (int)orientvec[n].vshift << ' ' << endl;
   }
   return;
 }
