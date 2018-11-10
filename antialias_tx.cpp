@@ -1,14 +1,96 @@
 #include "stdafx.h"
 #include "base.h"
 #include "dwtnode.h"
+static class packlift_filters
+{
+public:
+  // constructor defined in antialias.cpp
+  packlift_filters(char *);
+  ~packlift_filters()
+  {
+    if (ht_coeff != NULL) delete[] ht_coeff;
+    if (hc_coeff != NULL) delete[] hc_coeff;
+    if (hp_coeff != NULL) delete[] hp_coeff;
+  }
+  int htN, hcN, hpN, offset;
+  double *ht_coeff, *hc_coeff, *hp_coeff;
+} f("sideinf\\icip_aa_filters.dat");
+// Initialise antialiasing filters from external file.
+// Note that although htN and hcN indicate the true filter length,
+// zero padding will occur if necessary to ensure the stored
+// coefficients are always odd length support. This allows
+// compatibility with the dwtnode::filt() function.
+// ht is zero padded on the left side, while hc (and hp, if
+// support is added) is padded on the right side. Appropriate
+// boundary selection (see packet_transfer and packet_cancel
+// functions) must take into account this asymmetry.
+packlift_filters::packlift_filters(char *fname)
+{
+  ht_coeff=NULL, hc_coeff=NULL, hp_coeff=NULL;
+  ifstream filtin(fname,ios::binary);
+  if (!filtin.good())
+  {
+    cerr << "Access of file " << fname << " unsuccessful." << endl;
+    exit(1);
+  }
+  filtin >> htN;
+  int n, h_even = 1-htN%2; // +1 if htN is even, 0 otherwise
+  ht_coeff = new double[htN+h_even];
+  for (n=0; n<htN; n++)
+    filtin >> ht_coeff[n];
+  if (htN%2 == 0)  ht_coeff[htN]=0; // pad right side with 0
+  filtin >> hcN;
+  h_even = 1-hcN%2;
+  hc_coeff = new double[hcN+h_even];
+  hc_coeff[0] = 0; // pad left side with 0
+  for (n=h_even; n<hcN+h_even; n++)
+    filtin >> hc_coeff[n];
+  if (!filtin.good())
+  {
+    cerr << "Could not read in filters: " << fname
+      << " file may be wrong format" << endl;
+    exit(2);
+  }
+  if ((htN+hcN)%2 != 0)
+  {
+    cerr << "The transfer and cancellation filters must "
+      << "both have even, or odd number of samples - "
+      << "end-to-end filter must be linear phase." << endl;
+    exit(3);
+  }
+  filtin >> hpN;
+  hp_coeff = new double[hpN];
+  if (!filtin.good())
+    return; // assume hp not specified
+  for (n=0;n<hpN;n++)
+    filtin >> hp_coeff[n];
+  int htmaxindex=0, hcmaxindex=0;
+  double maxcoeff=ht_coeff[0];
+  for (n=1;n<htN;n++)
+    if (maxcoeff<ht_coeff[n])
+    {
+      maxcoeff = ht_coeff[n];
+      htmaxindex = n;
+    }
+  maxcoeff = hc_coeff[0];
+  for (n=1;n<hcN;n++)
+    if (maxcoeff<hc_coeff[n])
+    {
+      maxcoeff = hc_coeff[n];
+      hcmaxindex = n;
+    }
+  offset = htmaxindex - htN/2;
+  offset += hcN/2 - hcmaxindex;
+  offset >>= 1;
+  //offset = -1; // set this to emulate old results
+}
 int globalcount; // keeps a count of which packet pair is being swapped
 void packet_transfer(dwtnode &donor, dwtnode &receiver,
           bool analysis, direction dir)
 {
-  packlift_filters *f = donor.packf;
-  int N = f->htN/2;
-  int acc_shft = (dir==horizontal)?-f->offset:-f->offset*receiver.w;
-  int N_even = 1-f->htN%2; // 1 if htN is even, 0 otherwise
+  int N = f.htN/2;
+	int Nleft = ((f.htN%2)==0)? N-1:N;
+  int acc_shft = (dir==horizontal)?-f.offset:-f.offset*receiver.w;
   int sign = (analysis)?+1:-1;
   int ystart, yend, xstart, xend;
   // Set boundaries for filtering. Note, for odd order filters,
@@ -22,12 +104,12 @@ void packet_transfer(dwtnode &donor, dwtnode &receiver,
   {
     ystart = 0;
     yend = donor.h;
-    xstart = N-N_even;
+    xstart = Nleft;
     xend = donor.w-N;
   }
   else // vertical
   {
-    ystart = N-N_even;
+    ystart = Nleft;
     yend = donor.h-N;
     xstart = 0;
     xend = donor.w;
@@ -35,16 +117,15 @@ void packet_transfer(dwtnode &donor, dwtnode &receiver,
   for (int y=ystart;y<yend;y++)
     for (int x=xstart;x<xend;x++)
       receiver.pixels[acc_shft+y*receiver.w+x] += sign*
-        donor.filt(&f->ht_coeff[N],y*donor.w+x,0,N,dir,true);
+        donor.filt(&f.ht_coeff[N],y*donor.w+x,0,N,dir,true);
   return;
 }
 void packet_cancel(dwtnode &donor, dwtnode &receiver,
           bool analysis, direction dir)
 {
-  packlift_filters *f = donor.packf;
-  int N = f->hcN/2;
-  int don_shft = (dir==horizontal)?f->offset:f->offset*receiver.w;
-  int B = (f->htN+f->hcN-2)/2;
+  int N = f.hcN/2;
+  int don_shft = (dir==horizontal)?f.offset:f.offset*receiver.w;
+  int B = (f.htN+f.hcN-2)/2;
   int sign = (analysis)?+1:-1;
   int ystart, yend, xstart, xend;
   // define boundaries
@@ -52,20 +133,20 @@ void packet_cancel(dwtnode &donor, dwtnode &receiver,
   {
     ystart = 0;
     yend = donor.h;
-    xstart = B-f->offset;
-    xend = donor.w-B-f->offset;
+    xstart = B-f.offset;
+    xend = donor.w-B-f.offset;
   }
   else // vertical
   {
-    ystart = B-f->offset;
-    yend = donor.h-B-f->offset;
+    ystart = B-f.offset;
+    yend = donor.h-B-f.offset;
     xstart = 0;
     xend = donor.w;
   }
   for (int y=ystart;y<yend;y++)
     for (int x=xstart;x<xend;x++)
       donor.pixels[don_shft+y*donor.w+x] -= sign*
-        receiver.filt(&f->hc_coeff[N],y*receiver.w+x,0,N,dir,true);
+        receiver.filt(&f.hc_coeff[N],y*receiver.w+x,0,N,dir,true);
   return;
 }
 // writes the convolution of filters ht and hc to the array hconv
@@ -87,151 +168,37 @@ int conv(packlift_filters &f, double *hconv)
   }
   return convN/2;
 }
-// computes the local average energy in a packet
-double average3x3energy(dwtnode &band, int ycentre, int xcentre)
+void average3x3abs(dwtnode &band, dwtnode &out)
 {
-  double total=0;
-  int y=ycentre, x=xcentre;
-  total = band.pixels[(y-1)*band.w+(x-1)]*band.pixels[(y-1)*band.w+(x-1)];
-  total += band.pixels[(y-1)*band.w+(x+1)]*band.pixels[(y-1)*band.w+(x+1)];
-  total += band.pixels[(y+1)*band.w+(x-1)]*band.pixels[(y+1)*band.w+(x-1)];
-  total += band.pixels[(y+1)*band.w+(x+1)]*band.pixels[(y+1)*band.w+(x+1)];
-  total *= 0.5;
-  total += band.pixels[(y-1)*band.w+x]*band.pixels[(y-1)*band.w+x];
-  total += band.pixels[y*band.w+(x-1)]*band.pixels[y*band.w+(x-1)];
-  total += band.pixels[y*band.w+(x+1)]*band.pixels[y*band.w+(x+1)];
-  total += band.pixels[(y+1)*band.w+x]*band.pixels[(y+1)*band.w+x];
-  total *= 0.5;
-  total += band.pixels[y*band.w+x]*band.pixels[y*band.w+x];
-  total *= 0.25;
-  // 3x3 weighted smoothing filter of the packet energy
-  return total;
+	if ((band.h!=out.h)||(band.w!=out.w))
+	{
+		cerr << "Bands must have identical dimensions" << endl;
+	}
+	for (int y=1;y<band.h-1;y++)
+		for (int x=1;x<band.w-1;x++)
+		{
+			double tmp = abs(band.pixels[(y-1)*band.w+(x-1)]);
+			tmp += abs(band.pixels[(y-1)*band.w+(x+1)]);
+			tmp += abs(band.pixels[(y+1)*band.w+(x-1)]);
+			tmp += abs(band.pixels[(y+1)*band.w+(x+1)]);
+			tmp *= 0.5;
+			tmp += abs(band.pixels[(y-1)*band.w+x]);
+			tmp += abs(band.pixels[y*band.w+(x-1)]);
+			tmp += abs(band.pixels[y*band.w+(x+1)]);
+			tmp += abs(band.pixels[(y+1)*band.w+x]);
+			tmp *= 0.5;
+			tmp += abs(band.pixels[y*band.w+x]);
+			tmp *= 0.25;
+			out.pixels[y*out.w+x] = tmp;
+		}
 }
-double average3x3abs(dwtnode &band, int ycentre, int xcentre)
-{
-  double total=0;
-  int y=ycentre, x=xcentre;
-  total = abs(band.pixels[(y-1)*band.w+(x-1)]);
-  total += abs(band.pixels[(y-1)*band.w+(x+1)]);
-  total += abs(band.pixels[(y+1)*band.w+(x-1)]);
-  total += abs(band.pixels[(y+1)*band.w+(x+1)]);
-  total *= 0.5;
-  total += abs(band.pixels[(y-1)*band.w+x]);
-  total += abs(band.pixels[y*band.w+(x-1)]);
-  total += abs(band.pixels[y*band.w+(x+1)]);
-  total += abs(band.pixels[(y+1)*band.w+x]);
-  total *= 0.5;
-  total += abs(band.pixels[y*band.w+x]);
-  total *= 0.25;
-  // 3x3 weighted smoothing filter of the packet energy
-  return total;
-}
-double average2x3abs(dwtnode &band, int y, int x, direction dir)
-{ // shift forwards by 1/2 pixels in the given direction
-  double total=0;
-  if (dir==vertical)
-  {
-    total = abs(band.pixels[(y-1)*band.w+(x-1)]);
-    total += abs(band.pixels[(y-1)*band.w+(x+1)]);
-    total += abs(band.pixels[y*band.w+(x-1)]);
-    total += abs(band.pixels[y*band.w+(x+1)]);
-    total *= 0.5;
-    total += abs(band.pixels[(y-1)*band.w+x]);
-    total += abs(band.pixels[y*band.w+x]);
-    total *= 0.25;
-  }
-  else
-  {
-    total = abs(band.pixels[(y-1)*band.w+(x-1)]);
-    total += abs(band.pixels[(y-1)*band.w+x]);
-    total += abs(band.pixels[(y+1)*band.w+(x-1)]);
-    total += abs(band.pixels[(y+1)*band.w+x]);
-    total *= 0.5;
-    total += abs(band.pixels[y*band.w+(x-1)]);
-    total += abs(band.pixels[y*band.w+x]);
-    total *= 0.25;
-  }
-  return total;
-}
-// computes the local average energy, using an unweighted NxN window
-double averageenergy(dwtnode &packet, int ycentre, int xcentre, int N)
-{
-  double total=0;
-  int y,x;
-  if (N%2==0)
-  {
-    cerr << "Window size must be odd" << endl;
-    exit(1);
-  }
-  int n=N>>1;
-  for (int y1=ycentre-n;y1<=ycentre+n;y1++)
-    for (int x1=xcentre-n;x1<=xcentre+n;x1++)
-    { // boundary replication should never actually be required
-      if (y1<0)
-        y=0;
-      else if (y1>=packet.h)
-        y=packet.h-1;
-      else
-        y=y1;
-      if (x1<0)
-        x=0;
-      else if (x1>=packet.w)
-        x=packet.w-1;
-      else
-        x=x1;
-      total += packet.pixels[y*packet.w+x]*packet.pixels[y*packet.w+x];
-    }
-  return total;
-}
-double alphlookup(double sideE, double hE)
-{
-  const double beta=1.0;
-  const double T = 1000.0;
-  double refE = T + beta*hE;
-  if (refE<sideE) // alpha = sideE/hE, but only if hE is sufficiently large
-    return 1.0;
-  if (0.75*refE<sideE)
-    return 0.75;
-  if (0.5*refE<sideE)
-    return 0.5;
-  if (0.25*refE<sideE)
-    return 0.25;
-  return 0.0;
-}
-//double alphaTlookup(double hE, double donorE)
-//{ // note T scales with the dc gain of the averaging window
-//  const double T = 60;
-//  // decrease T/beta to lower the threshold of aliasing permitted,
-//  // thus increasing alpha on average
-//  const double beta = 0.02;
-//  double refE = T + beta*donorE;
-//  // test against tiered thresholds
-//  {
-//  if (hE < refE)
-//    return 0.0;
-//  if (0.765625*hE < refE)
-//    return 0.125;
-//  if (0.5625*hE < refE)
-//    return 0.25;
-//  if (0.390625*hE < refE)
-//    return 0.375;
-//  if (0.25*hE < refE)
-//    return 0.5;
-//  //if (0.140625*hE < refE)
-//  //  return 0.625;
-//  if (0.0625*hE < refE)
-//    return 0.75;
-//  }
-//  return 1.0;
-//}
 double alphaTlookup(dwtnode &hE,dwtnode &donorE,int y,int x,direction dir)
 {
   const double T = 1.0;
   const double beta = 0.1;
-  double hEp = hE.pixels[y*hE.w+x];
-  double refE = beta*donorE.pixels[y*donorE.w+x] + T;
-  //if (hE > 1.5*donorE+T) // prevent ringing
-  //  return 0;
+	const double Tdonor = 2.0;
+  double hEp = hE.pixels[y*hE.w+x]; // aliased energy
+  double refE = beta*donorE.pixels[y*donorE.w+x] + T; //
   double alpha;
   if (hEp < refE)
     alpha = 0;
@@ -243,10 +210,13 @@ double alphaTlookup(dwtnode &hE,dwtnode &donorE,int y,int x,direction dir)
     alpha = 0.75;
   else
     alpha = 1.0;
+	// attenuate alpha if surrounding donor energy is low
+	// we only want to do packet lifting in large regions of aliasing
+	// to avoid creating ringing artifacts
   int step = (dir==vertical)?donorE.w:1;
   for (int n=-4*step;n<5*step;n+=step)
   {
-    if (donorE.pixels[y*donorE.w+x+n]<2.0)
+    if (donorE.pixels[y*donorE.w+x+n]<Tdonor)
     {
       if (alpha>0.5)
         alpha -= 0.25;
@@ -256,31 +226,16 @@ double alphaTlookup(dwtnode &hE,dwtnode &donorE,int y,int x,direction dir)
   }
   return alpha;
 }
-double alphaClookup(double hcE, double accE)
-{
-  double T = 0.0;
-  //const double beta = 2.0;
-  double refE = accE*accE*accE;
-  if (2*hcE>refE)
-    return 0;
-  //if (4*hcE>refE)
-  //  return 0.5;
-  //if (hcE+T>0.8*accE)
-  //  return 0.3;
-  //if (hcE+T>0.6*accE)
-  //  return 0.6;
-  return 1;
-}
 void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
           dwtnode &side, bool analysis, direction dir)
 {
-  packlift_filters *f = donor.packf;
-  int N = f->htN/2;
-  int acc_shft = (dir==horizontal)?-f->offset:-f->offset*receiver.w;
+  int N = f.htN/2;                   // For odd order filters the
+	int Nleft = ((f.htN%2)==0)? N-1:N; // left margin is shortened
+  int acc_shft = (dir==horizontal)?-f.offset:-f.offset*receiver.w;
   int sign = (analysis)?+1:-1;
   int ystart, yend, xstart, xend, y, x;
-  double *hee = new double[f->htN+f->hcN-1];
-  int heeN = conv(*f,hee);
+  double *hee = new double[f.htN+f.hcN-1];
+  int heeN = conv(f,hee);
   fstream fio("sideinf\\alpha_transfer.dat",ios::in|ios::out|ios::binary|ios::app);
   if (!analysis)
   {
@@ -288,18 +243,17 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
     for (int n=0;n<globalcount;n++)
       while((c=fio.get())!='\n') ; // skip lines
   }
-  // Set boundaries for filtering. Note, for odd order filters
-  // the left/top margin is shorter than the right/bottom
+  // Set boundaries for filtering
   if (dir==horizontal)
   {
     ystart = 0;
     yend = donor.h;
-    xstart = N-1+f->htN%2;
+    xstart = Nleft;
     xend = donor.w-N;
   }
   else // vertical
   {
-    ystart = N-1+f->htN%2;
+    ystart = Nleft;
     yend = donor.h-N;
     xstart = 0;
     xend = donor.w;
@@ -314,21 +268,13 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
     {
       hee_output.pixels[y*donor.w+x] = donor.filt(&hee[heeN],y*donor.w+x,0,heeN,dir,true);
     }
-  for (y=1;y<donor.h-1;y++)
-    for (x=1;x<donor.w-1;x++)
-    {
-      htE.pixels[y*htE.w+x] = average3x3abs(hee_output,y,x);
-      donorE.pixels[y*donor.w+x] = average3x3abs(donor,y,x);
-    }
+	average3x3abs(donor,donorE);
+	average3x3abs(hee_output,htE);
   for (y=ystart+1;y<yend-1;y++)
     for (x=xstart+1;x<xend-1;x++)
     {
       double alpha;
-      //htE.pixels[y*htE.w+x] = averageenergy(hee_output,y,x,9);
-      //donorE.pixels[y*donorE.w+x] = averageenergy(donor,y,x,9);      
       alpha = alphaTlookup(htE,donorE,y,x,dir);
-      //if ((globalcount==0)&&(x>121)&&(x<140)&&(y>21)&&(y<42))
-      //  alpha=0;
       alpha_map.pixels[y*alpha_map.w+x] = alpha*128;
       htE.pixels[y*htE.w+x] *= 8;
       donorE.pixels[y*donorE.w+x] *= 8;
@@ -337,7 +283,7 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
       //else
       //  fio >> alpha;
       receiver.pixels[acc_shft+y*receiver.w+x] += sign*alpha*
-        donor.filt(&f->ht_coeff[N],y*donor.w+x,0,N,dir,true);
+        donor.filt(&f.ht_coeff[N],y*donor.w+x,0,N,dir,true);
     }
   fio << endl;
   fio.close();
@@ -353,6 +299,7 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
   //}
   return;
 }
+#ifdef neverdefinethis
 void packet_cancel_adaptive(dwtnode &donor, dwtnode &receiver,
           bool analysis, direction dir)
 {
@@ -422,6 +369,7 @@ void packet_cancel_adaptive(dwtnode &donor, dwtnode &receiver,
   }
   return;
 }
+#endif
 // Carries out 2 lifting steps between a pair of subbands, with filters
 // as specified by f.ht_coeff and f.hc_coeff
 void packswap(dwtnode &donor, dwtnode &receiver, dwtnode &side, 
@@ -460,11 +408,6 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
     globalcount=0;
   else
     globalcount=2;
-  if (packf==NULL)
-  {
-    cerr << "Packet lifting filters must be loaded!" << endl;
-    exit(1);
-  }
   subbands[0]->extract_subband(3); // the LL-HH packet is always used
   if ((dim == horizontal)||(dim == both))
   {
@@ -478,8 +421,8 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
     subbands[0]->extract_subband(1); // LL-HL
     subbands[1]->extract_subband(0); // HL-LL
     subbands[1]->extract_subband(2); // HL-LH
-    subbands[1]->extract_subband(1);
-    subbands[1]->extract_subband(3);
+    subbands[1]->extract_subband(1); // adjacent bands will have energy inspected
+    subbands[1]->extract_subband(3); // for adaptivity decisions
     if (!analysis) // if synthesis, undo horizontal transform first
     {
       packswap(*(subbands[0]->subbands[1]),*(subbands[1]->subbands[0]),
@@ -493,7 +436,7 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
   if ((dim == vertical)||(dim == both))
   {
     if ((subbands[0]->dwtlevel[vertical]!=1)
-      ||(subbands[1]->dwtlevel[vertical]!=1))
+      ||(subbands[2]->dwtlevel[vertical]!=1))
     {
       cerr << "Warning: vertical dwt levels are inconsistent; packet "
         << "lifting may be invalid" << endl;

@@ -2,7 +2,6 @@
 #include "dwtnode.h"
 int antialiasing(int argc, _TCHAR* argv[])
 {
-  packlift_filters filts("sideinf\\icip_aa_filters.dat");
   char currfile[] = "D:\\Work\\Images\\barbara.pgm";
   //char currfile[] = "D:\\Work\\Images\\nonstandard\\nyquist_horz_gen.pgm";
   dwtnode in(currfile,w9x7);
@@ -28,23 +27,25 @@ int antialiasing(int argc, _TCHAR* argv[])
   //cout << mse(in,comparison);
   return 0;
 }
+int estimate(int argc, _TCHAR* argv[])
+{
+	char currfile[] = "D:\\Work\\Images\\city0.pgm";
+  estorient est(currfile,w9x7);
+  est.init_orient(4,8,16);
+  est.calc_energies();
+  //est.legacy_choose_orient();
+  est.choose_orient();
+  est.ofield.orientwrite("sideinf\\tmp.dat");
+  est.ofield.orient_csvout();
+	return 0;
+}
 int compresstest(int argc, _TCHAR* argv[])
 {
   enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,aaorient};
   char currfile[] = "D:\\Work\\Images\\city0.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
-  if (false){ // orientation estimation flow
-    estorient est(currfile,w9x7);
-    est.init_orient(4,8,16);
-    est.calc_energies();
-    //est.legacy_choose_orient();
-    est.choose_orient();
-    est.ofield.orientwrite("sideinf\\tmp.dat");
-    est.ofield.orient_csvout();
-  }
   dwtnode ref(currfile,w9x7);
   dwtnode in(currfile,w9x7);
-  in.load_packfilts("sideinf\\icip_aa_filters.dat");
   //in.ofield.init_orient("sideinf\\barb4.dat");
   //in.ofield.setaffinefield();
   bool adapt=false; // select adaptive mode
@@ -76,7 +77,6 @@ int compresstest(int argc, _TCHAR* argv[])
     {
       dout << " half resolution";
       decode_ptr = &dwtnode::rawl_decode;
-      ref.load_packfilts("sideinf\\icip_aa_filters.dat");
       ref.analysis(both);
       ref.extract_subband(0);
       ref.extract_subband(1);
@@ -193,18 +193,16 @@ int compresstest(int argc, _TCHAR* argv[])
 }
 int hpftest(int argc, _TCHAR* argv[])
 {
-  //char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-  char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
+  char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+  //char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
+	//char currfile[] = "D:\\Work\\Images\\city0.pgm";
   dwtnode in(currfile,w5x3);
-  //in.ofield.init_orient("sideinf\\barb4.dat");
-  in.ofield.init_orient(4,8,8,4,0);
+  in.ofield.init_orient("sideinf\\barb4.dat");
+  //in.ofield.init_orient(4,8,8,4,0);
   in.ofield.setaffinefield();
 
-  //in.analysis(both);
-  in.oriented_analysis(both);
-	//in.synthesis(both);
-
-	in.pgmwrite("base.pgm");
+	in.hpf_oriented_analysis(both,false);
+	in.pgmwrite("barbhpfall.pgm");
 
   return 0;
 }

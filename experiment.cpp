@@ -292,13 +292,9 @@ void dwtnode::orient2_decode(char *fname, bool est)
   //oriented_packet_synthesis(shftbase,shftpoly4);
   return;
 }
-void dwtnode::aa_orient2_encode(packlift_filters &filts, bool out, bool est)
+void dwtnode::aa_orient2_encode(bool out, bool est)
 {
   oriented_packet_analysis(both);
-  //this->operating_depth = 1; // only write to LL1 pixels
-  //oriented_synthesis(shftpoly2,shftpoly4);
-  //analysis(both);
-  //this->operating_depth = 0;
   extract_subband(0);
   extract_subband(1);
   extract_subband(2);
@@ -329,7 +325,7 @@ void dwtnode::aa_orient2_encode(packlift_filters &filts, bool out, bool est)
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::aa_orient2_decode(char *fname, packlift_filters &filts, bool est)
+void dwtnode::aa_orient2_decode(char *fname, bool est)
 {
   rawlread(fname,h,w);
   analysis(both);

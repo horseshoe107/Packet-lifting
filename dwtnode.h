@@ -1,19 +1,5 @@
 enum direction {vertical,horizontal,both};
 enum dwttype {w5x3, w9x7, disabled};
-class packlift_filters
-{
-public:
-  // constructor defined in support_io.cpp
-  packlift_filters(char *);
-  ~packlift_filters()
-  {
-    if (ht_coeff != NULL) delete[] ht_coeff;
-    if (hc_coeff != NULL) delete[] hc_coeff;
-    if (hp_coeff != NULL) delete[] hp_coeff;
-  }
-  int htN, hcN, hpN, offset;
-  double *ht_coeff, *hc_coeff, *hp_coeff;
-};
 class orientationfield
 {
   friend class dwtnode;
@@ -74,7 +60,7 @@ public:
   dwtnode(int hset, int wset, dwttype, bool initzero=false);
   dwtnode(char *fname, dwttype);
   dwtnode(char *fname, int hset, int wset, dwttype, int expi=6);
-  void copy(dwtnode &);  
+  void copy(dwtnode &);
   virtual ~dwtnode()
   {
     for (int n=0;n<4;n++)
@@ -92,8 +78,6 @@ public:
   void rawlwrite(char *fname, int expi=6, bool allbands=false);
   void csvwrite(char *fname);
   void yuvstreamwrite(ofstream &yuvout);
-  // support io functions (defined in support_io.cpp)
-  void load_packfilts(char *fname);
   // ordinary manipulation functions (defined in dwtnode_tx.cpp)
   void extract_subband(int band);
   void insert_subband(int band, bool suppress_warnings=false);
@@ -125,14 +109,9 @@ public:
     bool analysis, direction);
   friend void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
     dwtnode &side, bool analysis, direction);
-  friend void packet_cancel_adaptive(dwtnode &donor, dwtnode &receiver,
-    bool analysis, direction);
   friend void packswap(dwtnode &donor, dwtnode &receiver, dwtnode &side,
     bool analysis, bool adaptive, direction);
-  friend double averageenergy(dwtnode &, int y, int x, int N);
-  friend double average3x3energy(dwtnode &, int ycentre, int xcentre);
-  friend double average3x3abs(dwtnode &, int ycentre, int xcentre);
-  friend double average2x3abs(dwtnode &, int ycentre, int xcentre, direction);
+	friend void average3x3abs(dwtnode &in, dwtnode &out);
   friend double alphaTlookup(dwtnode &hE, dwtnode &donorE, int y, int x, direction);
   void packlift(direction dim, bool analysis, bool adaptive=false);
   // oriented transform functions (defined in orient_tx.cpp)
@@ -145,9 +124,9 @@ public:
 	void oriented_packet_analysis(direction);
 	void oriented_packet_synthesis(direction);
   // defined in hpfprelift.cpp
-  void hpf_HLlift(double a, direction dir);
-  void hpf_oriented_analysis(direction);
-  void hpf_oriented_synthesis(direction);
+  void hpf_HLlift(double a, direction dir, bool adaptive);
+  void hpf_oriented_analysis(direction, bool adaptive=false);
+  void hpf_oriented_synthesis(direction, bool adaptive=false);
   // experiment testing functions (defined in experiment.cpp)
   friend double mse(dwtnode &a, dwtnode &b);
   void shift(int sigma);
@@ -162,8 +141,8 @@ public:
   void aa_orient_decode(char *bitrate, bool adapt=false);
   void orient2_encode(bool out=false, bool est=false);
   void orient2_decode(char *bitrate,  bool est=false);
-  void aa_orient2_encode(packlift_filters &filts, bool out=false, bool est=false);
-  void aa_orient2_decode(char *bitrate, packlift_filters &filts, bool est=false);
+  void aa_orient2_encode(bool out=false, bool est=false);
+  void aa_orient2_decode(char *bitrate, bool est=false);
 // data members
   inline int geth(){return h;}
   inline int getw(){return w;}
@@ -173,15 +152,12 @@ protected:
   // on the image data. assignment/retrieval of dwtlevel should be
   // done through indexing dwtlevel[vertical] and dwtlevel[horizontal]
   // as appropriate.
-  int dwtlevel[2];
+  int dwtlevel[2]; // depth of dwt analysis
   // when performing a transform along dimension x, operations will
   // apply to a subset of the pixels in dimension x as indicated by
   // dwtlevel[x] - only every 2^dwtlevel[x]th pixel is processed.
-  // concurrent subsampling in the orthogonal direction is controlled
-  // by operating_depth.
   enum dwttype dwtbase;
   double *pixels;
-  packlift_filters *packf;
 public:
   dwtnode *subbands[4]; // order of subbands: LL,HL,LH,HH
   orientationfield ofield;
