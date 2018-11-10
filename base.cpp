@@ -40,3 +40,17 @@ double gamma(double a)
   b &= 0x7;
   return (i+j)*ln2+log_lut[b]+1;
 }
+double * convolve(double *f1, int n1, double *f2, int n2)
+{
+  int n = n1+n2;
+  double *conv_coeffs = new double[2*n+1];
+  double *f = conv_coeffs+n;
+  for (int i=-n;i<=n;i++)
+    f[i]=0;
+  for (int i=-n1;i<=n1;i++)
+    for (int j=-n2;j<=n2;j++)
+    {
+      f[i+j] += f1[i]*f2[j];
+    }
+  return f;
+}

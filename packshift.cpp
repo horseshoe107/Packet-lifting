@@ -235,17 +235,24 @@ int hpftest(int argc, _TCHAR* argv[])
 {
   shker shft1("sideinf\\baseker.dat"); // create shift lut objects
   shker shft2("sideinf\\v2poly.dat");
-  char currfile[] = "C:\\Data\\Images\\nonstandard\\thin_vert.pgm";
+  //char currfile[] = "C:\\Data\\Images\\nonstandard\\thin_vert.pgm";
   //char currfile[] = "C:\\Data\\Images\\barbara.pgm";
+  char currfile[] = "dctest.pgm";
   dwtnode in(currfile,w5x3);
   //in.ofield.init_orient("sideinf\\barb4.dat");
-  in.ofield.init_orient(4,8,8,4,0);
+  in.ofield.init_orient(4,8,8);
+  //in.ofield.init_orient(4,8,8,4,0);
   in.ofield.setaffinefield();
+
+  //in.transpose();
   //in.analysis(vertical);
-  //in.oriented_analysis(shft1,vertical);
+  //in.hpf_oriented_analysis(shft2,horizontal);
+  //in.transpose();
+  //in.pgmwrite("dchorz_LL1.pgm");
+
   in.hpf_oriented_analysis(shft1,vertical);
   in.analysis(horizontal);
-  in.pgmwrite("testagain_LL1.pgm");
+  in.pgmwrite("dcvert_slightmodify_LL1.pgm");
   return 0;
 }
 int _tmain(int argc, _TCHAR* argv[])

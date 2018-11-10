@@ -137,39 +137,50 @@ void dwtnode::transpose()
 // Filtering is applied vertically or horizontally as denoted by dir. The filter
 // must have have 2N+1 taps, where f points at the centre coefficient. For even
 // length filters, the array should be zero-padded to meet this restriction.
-// Replication of the end pixels is used for boundary extension.
-double dwtnode::filt(double *f, int n, int z, int N, direction dir, bool forward)
+// Boundary is handled by constant extension of the end pixels. For inband signals,
+// this is only done for the low-pass samples
+double dwtnode::filt(double *f, int n, int offset, int N, direction dir,
+                     bool forward, bool inband)
 {
   if (dir == both)
   {
     cerr << "filt function only operates in one direction" << endl;
     exit(1);
   }
-  double out=0;
-  double *sig = &pixels[n+((dir==vertical)?z*w:z)];
+  n += (dir==vertical)? offset*w : offset; // modify pixel location by the offset
+  double *sig = pixels+n;
   int skip = (dir == vertical)?w:1;
-  // constant boundary extension
-  double Lext = (dir==vertical)?pixels[mod(n,w)]:pixels[divfloor(n,w)*w];
-  double Uext = (dir==vertical)?pixels[mod(n,w) + (h-1)*w]:pixels[(divfloor(n,w)+1)*w - 1];
-  if (false) // set true for zero boundary extension
-    Lext = Uext = 0;
+  // evaluate the indices for the first and last pixels in the column/row
+  int first_n = (dir==vertical) ? mod(n,w) : divfloor(n,w)*w;
+  int last_n  = inband ? // if inband, last sample must be low-pass
+    (dir==vertical) ? first_n + ((h-1)/2)*2*w : first_n + ((w-1)/2)*2 :
+    (dir==vertical) ? first_n + (h-1)*w : first_n + w-1;
+  double Lext = pixels[first_n];
+  double Uext = pixels[last_n];
   int Lbuf = (dir==vertical)?divfloor(n,w):mod(n,w);
   int Ubuf = (dir==vertical)?h-1 - divfloor(n,w):w-1 - mod(n,w);
-  Lbuf += z;
-  Ubuf -= z;
-  int L=N, U=N;
+  int L=U=N; // boundaries of filter support
+  double out=0;
   if (forward) // normal filtering
   {
     if (N > Lbuf) // extension of signal required
     {
-      for (int i=-N;i<-Lbuf;i++)
-        out += Lext * f[-i];
+      if (inband) // only extend the even samples
+        for (int i=-(N/2)*2;i<-Lbuf;i+=2)
+          out += Lext * f[-i];
+      else
+        for (int i=-N;i<-Lbuf;i++)
+          out += Lext * f[-i];
       L = Lbuf;
     }
     if (N > Ubuf) // extension on right/bot needed
     {
-      for (int i=Ubuf+1;i<=N;i++)
-        out += Uext * f[-i];
+      if (inband)
+        for (int i=(N/2)*2;i>Ubuf;i-=2)
+          out += Uext * f[-i];
+      else
+        for (int i=N;i>Ubuf;i--)
+          out += Uext * f[-i];
       U = Ubuf;
     }
     for (int i=-L;i<=U;i++)
@@ -177,16 +188,24 @@ double dwtnode::filt(double *f, int n, int z, int N, direction dir, bool forward
   }
   else // reverse filter coefficients (apply negative shift)
   {
-    if (N > Lbuf)
+    if (N > Lbuf) // extension of signal required
     {
-      for (int i=-N;i<-Lbuf;i++)
-        out += Lext * f[i];
+      if (inband) // only extend the even samples
+        for (int i=-(N/2)*2;i<-Lbuf;i+=2)
+          out += Lext * f[i];
+      else
+        for (int i=-N;i<-Lbuf;i++)
+          out += Lext * f[i];
       L = Lbuf;
     }
-    if (N > Ubuf)
+    if (N > Ubuf) // extension on right/bot needed
     {
-      for (int i=Ubuf+1;i<=N;i++)
-        out += Uext * f[i];
+      if (inband)
+        for (int i=(N/2)*2;i>Ubuf;i-=2)
+          out += Uext * f[i];
+      else
+        for (int i=N;i>Ubuf;i--)
+          out += Uext * f[i];
       U = Ubuf;
     }
     for (int i=-L;i<=U;i++)

@@ -30,4 +30,4 @@ inline int mod(int num, int den)
   return a;
 }
 double gamma(double a);
-double filt(double *f, double *signal, int L, int U, bool forward);
+double * convolve(double *, int, double *, int);

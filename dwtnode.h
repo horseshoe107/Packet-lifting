@@ -118,7 +118,8 @@ public:
   void insert_subband(int band, bool suppress_warnings=false);
   void interleave(bool suppress_warnings=false);
   void transpose();
-  double filt(double *f, int pixelloc, int offset, int fN, direction, bool forward);
+  double filt(double *f, int pixelloc, int offset, int fN, direction,
+    bool forward, bool inband=false);
   // ordinary transform functions (defined in dwtnode_tx.cpp)
   void apply_LHlift(double, direction);
   void apply_HLlift(double, direction);
