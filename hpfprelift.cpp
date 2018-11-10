@@ -1,6 +1,11 @@
 #include "stdafx.h"
 #include "base.h"
 #include "dwtnode.h"
+extern double splines[];
+extern const int splines_extent;
+extern const int lutprec;
+// must be declared before hpf_prelift_init() runs
+static const int lut_size = (lutprec/2+1); // number of vectors per integer-shift block
 static class hpfprelift_init
 {
 public:
@@ -14,15 +19,12 @@ static double g1_coeffs[] = {-0.25, -0.5, 1.5, -0.5, -0.25};
 #define G1_EXTENT 2
 static double hpf_coeffs[] = {-2,0,4,3,-5,-19,38,-19,-5,3,4,0,-2}; // divide by 64 later
 #define HPF_EXTENT 6
-extern double splines[];
-extern int splines_extent;
-#define LUT_SIZE 5
-#define INBAND_EXTENT 8 // sets the limit on length of the inband filters
-static const int hpf_h0_extent = H0_EXTENT+HPF_EXTENT;
 static double *g0_filter = g0_coeffs + G0_EXTENT;
 static double *g1_filter = g1_coeffs + G1_EXTENT;
 static double *hpf_h0_filter;
+static const int hpf_h0_extent = H0_EXTENT+HPF_EXTENT;
 static double *hpf_inband_lut;
+#define INBAND_EXTENT 8 // sets the limit on length of the inband filters
 double *initialise_hpf()
 {
   double *filtcentre = hpf_coeffs+HPF_EXTENT;
@@ -31,24 +33,26 @@ double *initialise_hpf()
   return filtcentre;
 }
 //interleave using the even-indexed samples from f0 and odd-indexed samples from f1.
-//if we are composing an inband filter from its polyphase components, f0 would
-//normally be the low-pass response and f1 the high-pass.
+//f0 and f1 should point to the centre of the filter, where the extent of the filters
+//are k0 and k1 respectively.
+//the interleaved result has an extent of n. if k0<n or k1<n then the end coefficients
+//will be trimmed, and both polyphase components will be adjusted to maintain dc gain
+//of 0
 void interleave_filters(double *f0, int k0, double *f1, int k1,
-                        double *dest, int n, bool f0lowpass=true)
+                        double *dest, int n)
 {
-  for (int i=-n;i<=n;i++)
+  int i; double sum;
+  for (i=-n;i<=n;i++)
     dest[i] = 0;
   int n0 = (k0>=n) ? (n%2==0) ? n:(n-1) // n0 is even
-    : (k0%2==0) ? k0:(k0-1);
+                   : (k0%2==0) ? k0:(k0-1);
   int n1 = (k1>=n) ? (n%2==0) ? (n-1):n // n1 is odd
-    : (k1%2==0) ? k1-1:k1;
-  double sum = 0;
-  for (int i=-n0;i<=n0;i+=2)
+                   : (k1%2==0) ? k1-1:k1;
+  for (sum=0,i=-n0;i<=n0;i+=2)
     sum += dest[i] = f0[i];
   //cout << "Modifying central tap by " << sum << endl;
   dest[0] -= sum; // restore 0 dc
-  sum = 0;
-  for (int i=-n1;i<=n1;i+=2)
+  for (sum=0,i=-n1;i<=n1;i+=2)
     sum += dest[i] = f1[i];
   //cout << "Modifying -1,1 taps by " << sum << endl;
   dest[-1] -= sum/2; // restore 0 dc
@@ -68,8 +72,8 @@ hpfprelift_init::hpfprelift_init()
   double *inband_L;
   double *inband_H;
   const int veclength = 2*INBAND_EXTENT+1;
-  hpf_inband_lut = new double[2*LUT_SIZE*veclength];
-  for (int i=0;i<LUT_SIZE;i++)
+  hpf_inband_lut = new double[2*lut_size*veclength];
+  for (int i=0;i<lut_size;i++)
   {
     inband_L = convolve(g0_hpf_h0,g0_hpf_h0_extent,
       splines+splines_extent+i*(2*splines_extent+1),splines_extent);
@@ -78,7 +82,7 @@ hpfprelift_init::hpfprelift_init()
     interleave_filters(inband_L,inband_L_extent,inband_H,inband_H_extent,
       hpf_inband_lut+INBAND_EXTENT+i*veclength,INBAND_EXTENT);
     interleave_filters(inband_H,inband_H_extent,inband_L,inband_L_extent,
-      hpf_inband_lut+INBAND_EXTENT+i*veclength+LUT_SIZE*veclength,INBAND_EXTENT);
+      hpf_inband_lut+INBAND_EXTENT+i*veclength+lut_size*veclength,INBAND_EXTENT);
     delete [] (inband_L - inband_L_extent);
     delete [] (inband_H - inband_H_extent);
   }
@@ -93,7 +97,7 @@ void hpf_inband_lut_select(int sigma, int oprec, int &z, int &LUT_index, bool &d
   direction = (sigma >= z*oprec);
   LUT_index = abs(sigma - z*oprec)*veclength + INBAND_EXTENT;
   if ((z%2)!=0)
-    LUT_index += veclength*LUT_SIZE;
+    LUT_index += lut_size*veclength;
   return;
 }
 void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
@@ -203,7 +207,11 @@ void dwtnode::hpf_oriented_analysis(direction dir, bool adapt)
 	if (dir==both)
 	{
 		hpf_oriented_analysis(vertical,adapt);
+#ifdef HORIZONTALREADY
 		hpf_oriented_analysis(horizontal,adapt);
+#else
+    oriented_analysis(horizontal);
+#endif
 		return;
 	}
   switch (dwtbase)
@@ -226,7 +234,11 @@ void dwtnode::hpf_oriented_synthesis(direction dir, bool adapt)
 {
 	if (dir==both)
 	{
-		hpf_oriented_synthesis(horizontal,adapt);
+#ifdef HORIZONTALREADY
+    hpf_oriented_synthesis(horizontal,adapt);
+#else
+    oriented_synthesis(horizontal);
+#endif
 		hpf_oriented_synthesis(vertical,adapt);
 		return;
 	}
@@ -235,7 +247,7 @@ void dwtnode::hpf_oriented_synthesis(direction dir, bool adapt)
   {
   case w5x3:
     apply_gain_factors(1,2,dir);
-    hpf_HLlift(0.25,dir,adapt);
+    //hpf_HLlift(0.25,dir,adapt);
     apply_oriented_HLlift(-0.25,dir);
     apply_oriented_LHlift(0.5,dir);
     hpf_HLlift(0.5,dir,adapt);

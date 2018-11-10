@@ -60,23 +60,30 @@ void orientationfield::copy(const orientationfield &target)
   fieldtype=target.fieldtype;
   if (orientvec!=NULL)
     delete [] orientvec;
-  orientvec = new orientation[numblks];
-  for (int n=0;n<numblks;n++)
-    orientvec[n]=target.orientvec[n];
+  if (target.orientvec!=NULL)
+  {
+    orientvec = new orientation[numblks];
+    for (int n=0;n<numblks;n++)
+      orientvec[n]=target.orientvec[n];
+  }
+  else orientvec = NULL;
 }
 void orientationfield::inherit(orientationfield parent)
 {
-  if (parent.blksz >=2)
+  this->fieldtype = parent.fieldtype;
+  this->maxshift  = parent.maxshift;
+  this->oprec     = parent.oprec;
+  if (parent.blksz == 0)
+    return;
+  if (parent.blksz >= 2)
     this->blksz = parent.blksz/2;
   else // fix this later
   {
     cerr << "Cannot inherit from parent; shift field is too fine" << endl;
+    cerr << "Subsampling of shift field is not defined" << endl;
     exit(1);
   }
-  this->fieldtype = parent.fieldtype;
-  this->maxshift  = parent.maxshift;
   this->numblks   = parent.numblks;
-  this->oprec     = parent.oprec;
   if (orientvec != NULL)
     delete[] orientvec;
   this->orientvec = new orientation[numblks];

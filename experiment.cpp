@@ -2,7 +2,7 @@
 #include "base.h"
 #include "dwtnode.h"
 extern double splines[];
-extern int splines_extent;
+extern const int splines_extent;
 double mse(dwtnode &a, dwtnode &b)
 {
   if ((a.h>>a.dwtlevel[vertical]!=b.h>>b.dwtlevel[vertical])
@@ -51,6 +51,18 @@ void dwtnode::halveimage(bool doit)
     this->h>>=1;
     this->w>>=1;
   }
+}
+void dwtnode::call_batch(testmode mode, bool halfres)
+{
+  std::stringstream batch;
+  if (halfres)
+    batch << "halfres.bat";
+  else if ((mode==pyramid3x2)||(mode==pyramid2x3))
+    batch << "pyramid.bat";
+  else
+    batch << "out.bat";
+  batch <<" "<<h<<" "<<w<<" "<<dwtbase;
+  system(batch.str().c_str());
 }
 // wrappers for analysis-encode-decode-synthesis experimentation
 void dwtnode::rawl_encode(bool halfres, bool adapt)

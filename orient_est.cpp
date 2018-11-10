@@ -2,7 +2,7 @@
 #include "base.h"
 #include "dwtnode.h"
 extern double splines[];
-extern int splines_extent;
+extern const int splines_extent;
 estorient::estorient(dwtnode *target):dwtnode(target->h,target->w,target->dwtbase)
 {
   dwtlevel[vertical]=target->dwtlevel[vertical];

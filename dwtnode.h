@@ -1,5 +1,6 @@
 enum direction {vertical,horizontal,both};
 enum dwttype {w5x3, w9x7, disabled};
+enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,aaorient,hpfprelift};
 class orientationfield
 {
   friend class dwtnode;
@@ -7,16 +8,14 @@ class orientationfield
   friend class est2orient;
 public:
   // io functions (defined in support_io.cpp)
-  orientationfield(){h=0, w=0, fieldtype=blockgrid, orientvec=NULL;};
-  // there is no destructor function - this is intentional, because
-  // inherit() uses a shallow copy. a deep deconstructor will cause
-  // an error
-	// wtf? inherit() makes a deep copy now
+  orientationfield(){h=0, w=0, blksz=0, numblks=0, oprec=0,
+    maxshift=0, fieldtype=blockgrid, orientvec=NULL;};
   void init_orient(int setblksz, int setprec, int setmaxshift,
     int defaulthorzshft=0, int defaultvertshft=0);
   void init_orient(char *fname);
   void copy(const orientationfield &);
   void inherit(orientationfield parent);
+  ~orientationfield(){if (orientvec!=NULL) delete[] orientvec;}
   void orientwrite(char *fname="orientout.dat");
   // manipulation functions (defined in orient_tx.cpp)
   void clearfield(int seth, int setw);
@@ -59,7 +58,7 @@ public:
   dwtnode(int hset, int wset, dwttype, bool initzero=false);
   dwtnode(char *fname, dwttype);
   dwtnode(char *fname, int hset, int wset, dwttype, int expi=6);
-	dwtnode(const dwtnode &);
+	dwtnode(const dwtnode &copy);
   virtual ~dwtnode()
   {
     for (int n=0;n<4;n++)
@@ -130,6 +129,7 @@ public:
   friend double mse(dwtnode &a, dwtnode &b);
   void shift(int sigma);
   void halveimage(bool);
+  void call_batch(testmode mode, bool halfres);
   void rawl_encode(bool halfres=false, bool adapt=false);
   void antialias_encode(bool halfres=false, bool adapt=false);
   void orient_encode(bool halfres=false, bool adapt=false);
@@ -145,8 +145,6 @@ public:
 	void hpfprelift_encode(bool halfres=false, bool adapt=true);
 	void hpfprelift_decode(char *bitrate, bool adapt=true);
 // data members
-  inline int geth(){return h;}
-  inline int getw(){return w;}
 protected:
   int h,w; // height and width of the image
   // records the depth of analysis that has been carried out so far
