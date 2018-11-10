@@ -1,3 +1,5 @@
+#ifndef _BASE
+#define _BASE
 // integer division with fractions rounded to the nearest
 // integer, rather than (usual) flooring towards 0.
 inline int divround(int num, int den)
@@ -30,3 +32,4 @@ inline int mod(int num, int den)
   return a;
 }
 double * convolve(double *, int, double *, int);
+#endif

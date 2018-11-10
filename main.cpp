@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "dwtnode.h"
 #include <assert.h>
-int estimate(int argc, _TCHAR* argv[])
+int estimate(int argc, char* argv[])
 {
 	char currfile[] = "D:\\Work\\Images\\lena.pgm";
   estorient est(currfile,w5x3);
@@ -12,7 +12,7 @@ int estimate(int argc, _TCHAR* argv[])
   est.ofield.orientwrite("sideinf\\lena.dat");
 	return 0;
 }
-int quadtree_estimate(int argc, _TCHAR* argv[])
+int quadtree_estimate(int argc, char* argv[])
 {
   char currfile[] = "D:\\Work\\Images\\barbclean.pgm";
   estorient2 est(currfile,w5x3);
@@ -23,7 +23,7 @@ int quadtree_estimate(int argc, _TCHAR* argv[])
   est.ofield.orientwrite("sideinf\\quadtree.dat");
   return 0;
 }
-int yuvstreamprocess(int argc, _TCHAR* argv[])
+int yuvstreamprocess(int argc, char* argv[])
 {
   char fname[] = "D:\\Work\\Videos\\MOBILE_352x288_30_orig_01.yuv";
   std::ifstream fin(fname,std::ios::binary);
@@ -40,7 +40,7 @@ int yuvstreamprocess(int argc, _TCHAR* argv[])
   //}
   return 0;
 }
-int shifttest(int argc, _TCHAR* argv[])
+int shifttest(int argc, char* argv[])
 {
   char currfile[] = "D:\\Work\\Images\\city0.pgm";
   std::ofstream yuvout("shifttest.yuv",std::ios::binary);
@@ -63,7 +63,7 @@ int shifttest(int argc, _TCHAR* argv[])
   yuvout.close();
   return 0;
 }
-int orienttest(int argc, _TCHAR* argv[])
+int orienttest(int argc, char* argv[])
 {
 	enum testmode {orient, recon1, recon2, recon3} mode;
   char currfile[] = "D:\\Work\\Images\\barbara.pgm";
@@ -98,7 +98,7 @@ int orienttest(int argc, _TCHAR* argv[])
   }
 	return 0;
 }
-int compresstest(int argc, _TCHAR* argv[])
+int compresstest(int argc, char* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
   //char Cdecomp[] = "B(-:-:-),B(-:-:-)";
@@ -276,7 +276,7 @@ int compresstest(int argc, _TCHAR* argv[])
   dout.close();
   return 0;
 }
-int hpftest(int argc, _TCHAR* argv[])
+int hpftest(int argc, char* argv[])
 {
   char currfile[] = "D:\\Work\\Images\\barbara.pgm";
   //char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
@@ -290,7 +290,7 @@ int hpftest(int argc, _TCHAR* argv[])
 	in.pgmwrite("test.pgm");
   return 0;
 }
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* argv[])
 {
   //system("del sideinf\\alpha_transfer.dat");
   compresstest(argc,argv);

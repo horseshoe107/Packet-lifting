@@ -1,3 +1,5 @@
+#ifndef _ORIENT
+#define _ORIENT
 #include "dwtnode.h"
 struct jprimevec{float jprime; bool prune;};
 struct bestJvec{float J; direction cdir; char cshift;};
@@ -30,3 +32,4 @@ public:
   orienttree *children[4]; // children[1] is offset in the x direction, child[2] in y
 };
 void codetree(char *fname, orienttree *root);
+#endif
