@@ -11,10 +11,11 @@ public:
   // there is no destructor function - this is intentional, because
   // inherit() uses a shallow copy. a deep deconstructor will cause
   // an error
+	// wtf? inherit() makes a deep copy now
   void init_orient(int setblksz, int setprec, int setmaxshift,
     int defaulthorzshft=0, int defaultvertshft=0);
   void init_orient(char *fname);
-  void copy(orientationfield &);
+  void copy(const orientationfield &);
   void inherit(orientationfield parent);
   void orientwrite(char *fname="orientout.dat");
   // manipulation functions (defined in orient_tx.cpp)
@@ -60,7 +61,7 @@ public:
   dwtnode(int hset, int wset, dwttype, bool initzero=false);
   dwtnode(char *fname, dwttype);
   dwtnode(char *fname, int hset, int wset, dwttype, int expi=6);
-  void copy(dwtnode &);
+	dwtnode(const dwtnode &);
   virtual ~dwtnode()
   {
     for (int n=0;n<4;n++)
@@ -108,8 +109,8 @@ public:
   friend void packet_cancel(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
   friend void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
-    dwtnode &side, bool analysis, direction);
-  friend void packswap(dwtnode &donor, dwtnode &receiver, dwtnode &side,
+    bool analysis, direction);
+  friend void packswap(dwtnode &donor, dwtnode &receiver,
     bool analysis, bool adaptive, direction);
 	friend void average3x3abs(dwtnode &in, dwtnode &out);
   friend double alphaTlookup(dwtnode &hE, dwtnode &donorE, int y, int x, direction);
@@ -125,8 +126,8 @@ public:
 	void oriented_packet_synthesis(direction);
   // defined in hpfprelift.cpp
   void hpf_HLlift(double a, direction dir, bool adaptive);
-  void hpf_oriented_analysis(direction, bool adaptive=false);
-  void hpf_oriented_synthesis(direction, bool adaptive=false);
+  void hpf_oriented_analysis(direction, bool adaptive=true);
+  void hpf_oriented_synthesis(direction, bool adaptive=true);
   // experiment testing functions (defined in experiment.cpp)
   friend double mse(dwtnode &a, dwtnode &b);
   void shift(int sigma);
@@ -143,6 +144,8 @@ public:
   void orient2_decode(char *bitrate,  bool est=false);
   void aa_orient2_encode(bool out=false, bool est=false);
   void aa_orient2_decode(char *bitrate, bool est=false);
+	void hpfprelift_encode(bool halfres=false, bool adapt=true);
+	void hpfprelift_decode(char *bitrate, bool adapt=true);
 // data members
   inline int geth(){return h;}
   inline int getw(){return w;}

@@ -44,7 +44,7 @@ void dwtnode::downsample_lift(bool analysis)
 void dwtnode::lp3x2_halfres()
 {
   dwtbase = disabled;
-  this->subbands[0] = new dwtnode(h/2,w/2,disabled,true);
+  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
   downsample_lift(true);
   upsample_lift(true);
   downsample_lift(true);
@@ -53,8 +53,8 @@ void dwtnode::lp3x2_halfres()
   subbands[0]->pixels = NULL;
   delete subbands[0];
   subbands[0] = NULL;
-  this->h>>=1;
-  this->w>>=1;
+  this->h=(h+1)/2;
+  this->w=(w+1)/2;
 }
 void dwtnode::lp3x2_encode(bool halfres, bool adapt)
 {
@@ -88,15 +88,15 @@ void dwtnode::lp3x2_decode(char *bitrate, bool adapt)
 void dwtnode::lp2x3_halfres()
 {
   dwtbase = disabled;
-  this->subbands[0] = new dwtnode(h/2,w/2,disabled,true);
+  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
   downsample_lift(true);
   delete [] this->pixels;
   pixels = subbands[0]->pixels;
   subbands[0]->pixels = NULL;
   delete subbands[0];
   subbands[0] = NULL;
-  this->h>>=1;
-  this->w>>=1;
+  this->h=(h+1)/2;
+  this->w=(w+1)/2;
 }
 void dwtnode::lp2x3_encode(bool halfres, bool adapt)
 {

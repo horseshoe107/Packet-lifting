@@ -49,7 +49,7 @@ void orientationfield::init_orient(char *fname)
   }
   return;
 }
-void orientationfield::copy(orientationfield &target)
+void orientationfield::copy(const orientationfield &target)
 {
   this->h=target.h;
   this->w=target.w;

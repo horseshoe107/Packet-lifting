@@ -5,8 +5,8 @@ void dwtnode::extract_subband(int band)
 {
   if ((dwtlevel[vertical]==0)||(dwtlevel[horizontal]==0))
   {
-    cerr << "Subband cannot be extracted - image has not been "
-      "analysed in at least one direction." << endl;
+    cerr << "Subband cannot be extracted - image is still in"
+      "baseband form in at least one direction." << endl;
     exit(1);
   }
   // calculate the offsets for the subband when it is in
@@ -19,6 +19,7 @@ void dwtnode::extract_subband(int band)
   {
     subbands[band]->dwtlevel[vertical] = this->dwtlevel[vertical]-1;
     subbands[band]->dwtlevel[horizontal] = this->dwtlevel[horizontal]-1;
+		subbands[0]->ofield.inherit(this->ofield);
   }
   if (band==1) // HL
     subbands[band]->dwtlevel[vertical] = this->dwtlevel[vertical]-1;

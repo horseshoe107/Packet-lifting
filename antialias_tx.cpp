@@ -227,7 +227,7 @@ double alphaTlookup(dwtnode &hE,dwtnode &donorE,int y,int x,direction dir)
   return alpha;
 }
 void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
-          dwtnode &side, bool analysis, direction dir)
+          bool analysis, direction dir)
 {
   int N = f.htN/2;                   // For odd order filters the
 	int Nleft = ((f.htN%2)==0)? N-1:N; // left margin is shortened
@@ -299,86 +299,15 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
   //}
   return;
 }
-#ifdef neverdefinethis
-void packet_cancel_adaptive(dwtnode &donor, dwtnode &receiver,
-          bool analysis, direction dir)
-{
-  packlift_filters *f = donor.packf;
-  int N = f->hcN/2;
-  int don_shft = (dir==horizontal)?f->offset:f->offset*receiver.w;
-  int B = (f->htN+f->hcN-2)/2;
-  int sign = (analysis)?+1:-1;
-  int ystart, yend, xstart, xend;
-  //fstream fileio("sideinf\\alpha_cancel.dat",ios::in|ios::out|ios::binary|ios::app);
-  //if (!analysis)
-  //{
-  //  char c;
-  //  for (int n=0;n<globalcount;n++)
-  //    while((c=fileio.get())!='\n') ; // skip lines
-  //}
-  // define boundaries
-  if (dir==horizontal)
-  {
-    ystart = 0;
-    yend = donor.h;
-    xstart = B-f->offset;
-    xend = donor.w-B-f->offset;
-  }
-  else // vertical
-  {
-    ystart = B-f->offset;
-    yend = donor.h-B-f->offset;
-    xstart = 0;
-    xend = donor.w;
-  }
-  dwtnode hc_output(receiver.h,receiver.w,disabled,true);
-  dwtnode accE(receiver.h,receiver.w,disabled,true);
-  dwtnode hcE(receiver.h,receiver.w,disabled,true);
-  dwtnode alpha_map(receiver.h,receiver.w,disabled,true);
-  for (int y=ystart;y<yend;y++)
-    for (int x=xstart;x<xend;x++)
-    {
-      hc_output.pixels[don_shft+y*receiver.w+x] =
-        receiver.filt(&f->hc_coeff[N],y*receiver.w+x,0,N,dir,true);
-    }
-  for (int y=ystart+1;y<yend-1;y++)
-    for (int x=xstart+1;x<xend-1;x++)
-    {
-      double alpha;
-      //hcE = average3x3abs(hc_output,y,x);
-      hcE.pixels[y*hcE.w+x] = average2x3abs(hc_output,y,x,dir);
-      accE.pixels[y*accE.w+x] = average3x3abs(receiver,y,x);
-      //hcE.pixels[y*hcE.w+x] /= accE.pixels[y*accE.w+x];
-      //if (globalcount==2)
-      alpha = 1;//alphaClookup(hcE.pixels[y*hcE.w+x],accE.pixels[y*accE.w+x]);
-      //alpha_map.pixels[y*alpha_map.w+x] = alpha*128;
-      //if (analysis)
-      //  fileio << alpha << " ";
-      //else
-      //  fileio >> alpha;
-      donor.pixels[don_shft+y*donor.w+x] -= sign*alpha*
-        receiver.filt(&f->hc_coeff[N],y*receiver.w+x,0,N,dir,true);
-    }
-  //fileio << endl;
-  //fileio.close();
-  if ((globalcount==0)&&(analysis))
-  {
-    //hcE.pgmwrite("city_hcE.pgm");
-    //accE.pgmwrite("city_accE.pgm");
-    //alpha_map.pgmwrite("alpha.pgm");
-  }
-  return;
-}
-#endif
 // Carries out 2 lifting steps between a pair of subbands, with filters
 // as specified by f.ht_coeff and f.hc_coeff
-void packswap(dwtnode &donor, dwtnode &receiver, dwtnode &side, 
+void packswap(dwtnode &donor, dwtnode &receiver,
           bool analysis, bool adaptive, direction dir)
 {
   if (analysis)
   {
     if (adaptive)
-      packet_transfer_adaptive(donor, receiver, side, analysis, dir);
+      packet_transfer_adaptive(donor, receiver, analysis, dir);
     else
       packet_transfer(donor, receiver, analysis, dir);
     packet_cancel(donor, receiver, analysis, dir);
@@ -387,7 +316,7 @@ void packswap(dwtnode &donor, dwtnode &receiver, dwtnode &side,
   {
     packet_cancel(donor, receiver, analysis, dir);
     if (adaptive)
-      packet_transfer_adaptive(donor, receiver, side, analysis, dir);
+      packet_transfer_adaptive(donor, receiver, analysis, dir);
     else
       packet_transfer(donor, receiver, analysis, dir);
   }
@@ -421,14 +350,12 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
     subbands[0]->extract_subband(1); // LL-HL
     subbands[1]->extract_subband(0); // HL-LL
     subbands[1]->extract_subband(2); // HL-LH
-    subbands[1]->extract_subband(1); // adjacent bands will have energy inspected
-    subbands[1]->extract_subband(3); // for adaptivity decisions
     if (!analysis) // if synthesis, undo horizontal transform first
     {
       packswap(*(subbands[0]->subbands[1]),*(subbands[1]->subbands[0]),
-        *(subbands[1]->subbands[1]),analysis,adaptive,horizontal);
+        analysis,adaptive,horizontal);
       packswap(*(subbands[0]->subbands[3]),*(subbands[1]->subbands[2]),
-        *(subbands[1]->subbands[3]),analysis,adaptive,horizontal);
+        analysis,adaptive,horizontal);
       subbands[1]->interleave();
     }
     else horzsecond = true;
@@ -444,20 +371,18 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
     subbands[0]->extract_subband(2); // LL-LH
     subbands[2]->extract_subband(0); // LH-LL
     subbands[2]->extract_subband(1); // LH-HL
-    subbands[2]->extract_subband(2);
-    subbands[2]->extract_subband(3);
     packswap(*(subbands[0]->subbands[2]),*(subbands[2]->subbands[0]),
-      *(subbands[2]->subbands[2]),analysis,adaptive,vertical);
+      analysis,adaptive,vertical);
     packswap(*(subbands[0]->subbands[3]),*(subbands[2]->subbands[1]),
-      *(subbands[2]->subbands[3]),analysis,adaptive,vertical);
+      analysis,adaptive,vertical);
     subbands[2]->interleave();
   }
   if (horzsecond) // if analysis, horizontal transform comes second
   {
     packswap(*(subbands[0]->subbands[1]),*(subbands[1]->subbands[0]),
-      *(subbands[1]->subbands[1]),analysis,adaptive,horizontal);
+      analysis,adaptive,horizontal);
     packswap(*(subbands[0]->subbands[3]),*(subbands[1]->subbands[2]),
-      *(subbands[1]->subbands[3]),analysis,adaptive,horizontal);
+      analysis,adaptive,horizontal);
     subbands[1]->interleave();
   }
   subbands[0]->interleave();

@@ -42,15 +42,15 @@ int estimate(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,aaorient};
-  char currfile[] = "D:\\Work\\Images\\city0.pgm";
+  char currfile[] = "D:\\Work\\Images\\barbara.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
-  dwtnode ref(currfile,w9x7);
   dwtnode in(currfile,w9x7);
-  //in.ofield.init_orient("sideinf\\barb4.dat");
-  //in.ofield.setaffinefield();
+  in.ofield.init_orient("sideinf\\barb4.dat");
+	in.ofield.setaffinefield();
+	dwtnode ref=in;
   bool adapt=false; // select adaptive mode
-  bool halfres=true; // compute mse for half resolution recon instead
-  bool imageout=true; // dump out reconstructions and collate
+  bool halfres=false; // compute mses for half resolution instead
+  bool imageout=true; // dump out compressed, decoded images and collate
   testmode mode=orient;
   std::stringstream batch; // set batch file and resolution arguments
   batch << (halfres?"halfres.bat":"out.bat")<<" "<<ref.geth()<<" "<<ref.getw();
@@ -128,6 +128,7 @@ int compresstest(int argc, _TCHAR* argv[])
   case orient:
     encode_ptr = &dwtnode::orient_encode;
     dout << "Oriented wavelet MSEs";
+		decode_ptr = &dwtnode::orient_decode;
     if (halfres)
     {
       dout << " half resolution";
@@ -136,7 +137,6 @@ int compresstest(int argc, _TCHAR* argv[])
       cerr << "not yet implemented!";
       exit(1);
     }
-    else  decode_ptr = &dwtnode::orient_decode;
     dout << endl;
     break;
   case aaorient:
@@ -155,7 +155,7 @@ int compresstest(int argc, _TCHAR* argv[])
   }
   {
     (in.*encode_ptr)(halfres,adapt);
-    system(batch.str().c_str());
+    system(batch.str().c_str()); // run kdu_compress
     in.halveimage(halfres);
     //// test perfect reconstruction
     (in.*decode_ptr)("",adapt);
@@ -202,9 +202,42 @@ int hpftest(int argc, _TCHAR* argv[])
   in.ofield.setaffinefield();
 
 	in.hpf_oriented_analysis(both,false);
-	in.pgmwrite("barbhpfall.pgm");
 
   return 0;
+}
+int orienttest(int argc, _TCHAR* argv[])
+{
+	enum testmode {orient, recon1, recon2, recon3} mode = recon1;
+  //char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+	//char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
+	char currfile[] = "D:\\Work\\Images\\nonstandard\\constant.pgm";
+  dwtnode in(currfile,w5x3);
+  //in.ofield.init_orient("sideinf\\barb4.dat");
+	in.ofield.init_orient(4,8,8,4,0);
+	in.ofield.setaffinefield();
+  switch (mode)
+  {
+  case orient:
+		in.oriented_analysis(both);
+		in.pgmwrite("LL1.pgm");
+    break;
+	case recon1: // reconstruct w/ all subbands
+		in.oriented_packet_analysis(both);
+		in.oriented_synthesis(horizontal);
+		//in.oriented_synthesis(horizontal);
+		in.oriented_synthesis(vertical);
+		in.pgmwrite("LL1recon1.pgm");
+		break;
+	case recon2: // reconstruct only w/ LL1
+		in.oriented_packet_analysis(both);
+		in.extract_subband(0);
+		in.subbands[0]->oriented_synthesis(both);
+		in.subbands[0]->pgmwrite("LL1recon2.pgm");
+		break;
+	case recon3: // reconstruct w/ LL1 and lower res ofield
+		break;
+  }
+	return 0;
 }
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -212,7 +245,8 @@ int _tmain(int argc, _TCHAR* argv[])
   //system("del sideinf\\alpha_cancel.dat");
   //system("del sideinf\\cancel_energy.dat");
   //compresstest(argc,argv);
+	orienttest(argc,argv);
   //antialiasing(argc,argv);
-  hpftest(argc,argv);
+  //hpftest(argc,argv);
   return 0;
 }

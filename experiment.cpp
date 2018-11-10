@@ -139,16 +139,17 @@ void dwtnode::antialias_decode(char *bitrate, bool adapt)
   synthesis(both);
   return;
 }
-void dwtnode::orient_encode(bool out, bool adapt)
+void dwtnode::orient_encode(bool halfres, bool adapt)
 {
   oriented_packet_analysis(both);
-  if (out)
+  if (halfres)
   {
 		extract_subband(0);
 		subbands[0]->oriented_synthesis(both);
-    subbands[0]->pgmwrite("tmp\\or_LL1.pgm");
+    subbands[0]->rawlwrite("tmp\\out.rawl");
 		delete subbands[0];
 		subbands[0] = NULL;
+		return;
   }
   packet_synthesis(both);
   rawlwrite("tmp\\out.rawl");
@@ -220,7 +221,6 @@ void dwtnode::orient2_encode(bool out, bool est)
   //due to this imperfection
   oriented_packet_analysis(both);
   extract_subband(0);
-  subbands[0]->ofield.inherit(this->ofield);
   if (out)
   {
     subbands[0]->oriented_synthesis(both);
@@ -236,7 +236,6 @@ void dwtnode::orient2_encode(bool out, bool est)
   packet_synthesis(both);
   //in.oriented_packet_analysis(shftbase,shftpoly4);
   //in.extract_subband(0);
-  //in.subbands[0]->ofield.inherit(in.ofield);
   //in.subbands[0]->oriented_synthesis(shftbase,shftpoly2);
   //in.subbands[0]->pgmwrite("barb_rightleg.pgm");
 
@@ -253,8 +252,6 @@ void dwtnode::orient2_encode(bool out, bool est)
   //  subbands[0]->pgmwrite("tmp\\or2_LL1.pgm");
   //if (est)
   //  ;
-  //else
-  //  subbands[0]->ofield.inherit(this->ofield);
   //subbands[0]->oriented_packet_analysis(shftbase,shftpoly4);
   //subbands[0]->packet_synthesis(both);
   //interleave();
@@ -268,7 +265,6 @@ void dwtnode::orient2_decode(char *fname, bool est)
   //Legacy code chunk
   packet_analysis(both);
   extract_subband(0);
-  subbands[0]->ofield.inherit(this->ofield);
   subbands[0]->analysis(both);
   subbands[0]->oriented_synthesis(both);
   interleave();
@@ -277,8 +273,6 @@ void dwtnode::orient2_decode(char *fname, bool est)
   //extract_subband(0);
   //if (est)
   //  subbands[0]->ofield.init_orient("tmp\\LLorient.dat");
-  //else // interpolate shift field
-  //  subbands[0]->ofield.inherit(this->ofield);
   //subbands[0]->packet_analysis(both);
   //subbands[0]->oriented_packet_synthesis(shftbase,shftpoly4);
   //extract_subband(1);
@@ -313,8 +307,6 @@ void dwtnode::aa_orient2_encode(bool out, bool est)
     cpy.ofield.orient_csvout();
     subbands[0]->ofield.init_orient("tmp\\LLaaorient.dat");
   }
-  else
-    subbands[0]->ofield.inherit(this->ofield);
   subbands[0]->synthesis(both);
   if (out)
     subbands[0]->pgmwrite("tmp\\aaor2_LL.pgm");
@@ -332,8 +324,6 @@ void dwtnode::aa_orient2_decode(char *fname, bool est)
   extract_subband(0);
   if (est)
     subbands[0]->ofield.init_orient("tmp\\LLaaorient.dat");
-  else // interpolate shift field
-    subbands[0]->ofield.inherit(this->ofield);
   subbands[0]->packet_analysis(both);
   subbands[0]->oriented_packet_synthesis(both);
   interleave();
@@ -349,4 +339,13 @@ void dwtnode::aa_orient2_decode(char *fname, bool est)
   interleave();
   oriented_packet_synthesis(both);
   return;
+}
+void dwtnode::hpfprelift_encode(bool halfres, bool adapt)
+{
+	hpf_oriented_analysis(both,adapt);
+	return;
+}
+void dwtnode::hpfprelift_decode(char *bitrate, bool adapt)
+{
+	return;
 }

@@ -454,7 +454,7 @@ void dwtnode::kernel_selection(int n, int sigma, direction dir, int &z,
   // select kernels for the fractional-pixel shifts
   shiftdirection = (sigma >= z*ofield.oprec);
   LUT_index = abs(sigma - z*ofield.oprec)*vecskip + N;
-  if (dir==horizontal) // if LUT acts directly on subband coefficients
+  if (dwtlevel[!dir]!=0) // if LUT acts directly on subband coefficients
   { // modify kernel for subband type of the destination pixel
     LUT_index += (n%p)*phaseskip;
     // modify kernel for subband pattern of the support
@@ -480,6 +480,7 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
+	const bool inband = dwtlevel[!dir]!=0;
   double *lut = (dwtlevel[!dir]==0)?splines:
     (dwtlevel[!dir]==1)?inbandker_lut:packetker_lut;
   const int last = (dir==vertical)?((h-1)/s)*s : ((w-1)/s)*s;
@@ -506,11 +507,11 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
         kernel_selection(x,sigma1,dir,z1,sker1,ksig1);
         if (y==last) // bottom edge must be replicated
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0);
+              filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband);
         else // NB: filter in the orthogonal direction to the transform
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0)
-            + filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1));
+            ( filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband)
+            + filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1,inband));
       }
   else // horizontal
     for (int y=0;y<h;y++)
@@ -527,11 +528,11 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
         kernel_selection(y,sigma1,dir,z1,sker1,ksig1);
         if (x==last) // bottom edge must be replicated
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0);
+              filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband);
         else
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0)
-            + filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1));
+            ( filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband)
+            + filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1,inband));
       }
   return;
 }
@@ -549,6 +550,7 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
+	const bool inband = dwtlevel[!dir]!=0;
   double *lut = (dwtlevel[!dir]==0)?splines:
     (dwtlevel[!dir]==1)?inbandker_lut:packetker_lut;
   const int last = (dir==vertical)?((h-1)/s)*s : ((w-1)/s)*s;
@@ -573,14 +575,14 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
         kernel_selection(x,sigma1,dir,z1,sker1,ksig1);
         if (y==0) // top edge must be replicated
           pixels[y*w+x] += 2*a*
-              filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1);
+              filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1,inband);
         else if (y==last) // replicate bottom edge
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0);
+              filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband);
         else
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0)
-            + filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1));
+            ( filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband)
+            + filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1,inband));
       }
   else // horizontal
     for (int y=0;y<h;y++)
@@ -597,14 +599,14 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
         kernel_selection(y,sigma1,dir,z1,sker1,ksig1);
         if (x==0) // replicate left edge
           pixels[y*w+x] += 2*a*
-              filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1);
+              filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1,inband);
         else if (x==last) // replicate right edge
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0);
+              filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband);
         else
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0)
-            + filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1));
+            ( filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband)
+            + filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1,inband));
       }
   return;
 }

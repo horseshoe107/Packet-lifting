@@ -218,13 +218,6 @@ void dwtnode::hpf_oriented_analysis(direction dir, bool adapt)
     hpf_HLlift(-0.25,dir,adapt);
     apply_gain_factors(1,0.5,dir);
     break;
-  //case w9x7:
-  //  apply_oriented_LHlift(-1.586134342,dir);
-  //  apply_oriented_HLlift(-0.052980118,dir);
-  //  apply_oriented_LHlift(0.882911075,dir);
-  //  apply_oriented_HLlift(0.443506852,dir);
-  //  apply_gain_factors(0.812893066,0.615087052,dir);
-  //  break;
   default:
     cerr << "No wavelet kernels other than 5x3 permitted" << endl;
     exit(2);

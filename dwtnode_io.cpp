@@ -42,19 +42,17 @@ dwtnode::dwtnode(char *fname, int hset, int wset, dwttype type, int expi)
   for (int n=0;n<4;n++)
     subbands[n] = NULL;
 }
-void dwtnode::copy(dwtnode &target)
-{
+dwtnode::dwtnode(const dwtnode &target)
+{ // deep copy everything except for subbands
   this->h=target.h;
   this->w=target.w;
   dwtlevel[vertical]=target.dwtlevel[vertical];
   dwtlevel[horizontal]=target.dwtlevel[horizontal];
   dwtbase=target.dwtbase;
-  if (pixels!=NULL)
-    delete [] pixels;
   pixels = new double[h*w];
   for (int n=0;n<h*w;n++)
     pixels[n]=target.pixels[n];
-  this->ofield.copy(target.ofield);
+	ofield.copy(target.ofield);
 }
 void chk_pgm_comment(ifstream &in, bool eatspace)
 {
@@ -146,10 +144,7 @@ void dwtnode::rawlread(char *fname, int hset, int wset, int expi)
   return;
 }
 void dwtnode::rawlread(char *fname, int expi)
-{
-  rawlread(fname,h,w,expi);
-  return;
-}
+{  rawlread(fname,h,w,expi);  }
 bool dwtnode::yuvstreamread(ifstream &yuvin)
 {
   dwtlevel[vertical]=0; dwtlevel[horizontal]=0;
