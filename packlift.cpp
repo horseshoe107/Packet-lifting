@@ -240,9 +240,9 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
     xstart = 0;
     xend = donor.w;
   }
-  dwtnode hee_output(donor.h,donor.w,disabled,true);
-  dwtnode htE(donor.h,donor.w,disabled,true);
-  dwtnode donorE(donor.h,donor.w,disabled,true);
+  dwtnode hee_output(donor.h,donor.w,none,true);
+  dwtnode htE(donor.h,donor.w,none,true);
+  dwtnode donorE(donor.h,donor.w,none,true);
   for (y=0;y<donor.h;y++)
     for (x=0;x<donor.w;x++)
     {

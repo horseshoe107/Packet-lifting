@@ -56,14 +56,23 @@ void dwtnode::pyramid_encode(bool halfres, bool adapt)
 }
 void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
 {
+  switch (txbase)
+  {
+  case pyramid:
+  case pyramid2x3:
+  case pyramid3x2:
+    break;
+  default:
+    cerr << "Non-pyramid transform defined!" << endl;
+    exit(1);
+  }
   dwtnode *curr = this;
   for (int i=0;i<depth;i++,curr=curr->subbands[0])
   {
     if (curr->subbands[0]!=nullptr)
       delete subbands[0];
     curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,txbase,true);
-    curr->downsample_lift(true);
-    curr->upsample_lift(true);
+    curr->analysis(both);
     string d_fname = "tmp\\diff";
     d_fname += i + ".rawl";
     if (i >= layer) // write out all layers needed to reconstruct
@@ -90,6 +99,16 @@ void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
 }
 void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
 {
+  switch (txbase)
+  {
+  case pyramid:
+  case pyramid2x3:
+  case pyramid3x2:
+    break;
+  default:
+    cerr << "Non-pyramid transform defined!" << endl;
+    exit(1);
+  }
   dwtnode *curr = this;
   for (int i=layer;i<depth;i++,curr=curr->subbands[0])
   {
@@ -110,12 +129,12 @@ void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
     curr=this;
     for (int n=0;n<i;n++)
       curr = curr->subbands[0];
-    curr->upsample_lift(false);
+    curr->synthesis(both);
   }
 }
 void dwtnode::lp3x2_halfres()
 {
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
+  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
   downsample_lift(true);
   upsample_lift(true);
   downsample_lift(true);
@@ -129,7 +148,7 @@ void dwtnode::lp3x2_halfres()
 }
 void dwtnode::lp3x2_encode(bool halfres, bool adapt)
 {
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
+  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
   downsample_lift(true);
   upsample_lift(true);
   downsample_lift(true);
@@ -141,9 +160,6 @@ void dwtnode::lp3x2_encode(bool halfres, bool adapt)
     subbands[0]->rawlwrite("tmp\\coarse.rawl");
   }
   return;
-}
-void dwtnode::lp3x2_encode(int depth, int layer, bool adapt)
-{
 }
 void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
 {
@@ -157,17 +173,14 @@ void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
   rawlread((char *)d_fname.c_str());
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
+  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
   downsample_lift(false);
   upsample_lift(false);
   return;
 }
-void dwtnode::lp3x2_decode(char *bitrate, int depth, int layer, bool adapt)
-{
-}
 void dwtnode::lp2x3_halfres()
 {
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
+  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
   downsample_lift(true);
   delete [] this->pixels;
   pixels = subbands[0]->pixels;
@@ -179,7 +192,7 @@ void dwtnode::lp2x3_halfres()
 }
 void dwtnode::lp2x3_encode(bool halfres, bool adapt)
 {
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
+  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
   downsample_lift(true);
   upsample_lift(true);
   if (halfres)
@@ -190,9 +203,6 @@ void dwtnode::lp2x3_encode(bool halfres, bool adapt)
     subbands[0]->rawlwrite("tmp\\coarse.rawl");
   }
   return;
-}
-void dwtnode::lp2x3_encode(int depth, int layer, bool adapt)
-{
 }
 void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
 {
@@ -206,12 +216,9 @@ void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
   rawlread((char *)d_fname.c_str());
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
+  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
   upsample_lift(false);
   downsample_lift(false);
   upsample_lift(false);
   return;
-}
-void dwtnode::lp2x3_decode(char *bitrate, int depth, int layer, bool adapt)
-{
 }

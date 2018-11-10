@@ -104,21 +104,19 @@ int compresstest(int argc, _TCHAR* argv[])
   //char Cdecomp[] = "B(-:-:-),B(-:-:-)";
   char currfile[] = "D:\\Work\\Images\\lighthouse.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
-  dwtnode in(currfile,w9x7);
-  in.ofield.init_orient("sideinf\\lighthouse_1244.dat");
-	in.ofield.setaffinefield();
-	dwtnode ref=in;
+  txtype txtest = pyramid;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   int depth=1; // number of layers of scalability to create
   int layer=0; // compute mses for encoding layer (0 is full resolution)
-  // TODO: overload all encode & decode functions with layer argument instead of halfres
   bool imageout=halfres; // dump out compressed, decoded images and collate
-  testmode mode=packlift;
+  testmode mode=pyramid_test;
+  dwtnode in(currfile,txtest);
+  in.ofield.init_orient("sideinf\\lighthouse_1244.dat");
+	in.ofield.setaffinefield();
+	dwtnode ref=in;
   void (dwtnode::*encode_ptr)(int, int, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, int, int, bool) = NULL;
-  //void (dwtnode::*encode_ptr)(bool, bool) = NULL;
-  //void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   assert(layer<=depth);
   switch (mode)
   {
@@ -129,26 +127,22 @@ int compresstest(int argc, _TCHAR* argv[])
     for (int i=0;i<layer;i++)
       ref.analysis(both);
     break;}
-  case pyramid:{
+  case pyramid_test:{
     encode_ptr = &dwtnode::pyramid_encode;
-    dout << "Laplacian pyramid MSEs";
     decode_ptr = &dwtnode::pyramid_decode;
-    if (halfres)
-      ref.lp2x3_halfres();
-    break;}
-  case pyramid3x2:{
-    encode_ptr = &dwtnode::lp3x2_encode;
-    dout << "Flierl pyramid MSEs";
-    decode_ptr = &dwtnode::lp3x2_decode;
-    if (halfres)
-      ref.lp3x2_halfres(); // replace image with laplacian half res
-    break;}
-  case pyramid2x3:{
-    encode_ptr = &dwtnode::lp2x3_encode;
-    dout << "Tran pyramid MSEs";
-    decode_ptr = &dwtnode::lp2x3_decode;
-    if (halfres)
-      ref.lp2x3_halfres(); // replace image with laplacian half res
+    if (txtest == pyramid)
+      dout << "Laplacian pyramid MSEs";
+    else if (txtest == pyramid3x2)
+      dout << "Flierl pyramid MSEs";
+    else if (txtest == pyramid2x3)
+      dout << "Tran pyramid MSEs";
+    else
+    {
+      cerr << "Non-pyramid transform selected with pyramid encode test" << endl;
+      exit(1);
+    }
+    for (int i=0;i<layer;i++)
+      ref.analysis(both);
     break;}
   case packlift:{
     encode_ptr = &dwtnode::packlift_encode;

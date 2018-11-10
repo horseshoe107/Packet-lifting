@@ -3,7 +3,7 @@
 enum direction {vertical,horizontal,both};
 direction operator!(direction dir); // (defined in base.cpp)
 enum txtype {w5x3, w9x7, pyramid, pyramid3x2, pyramid2x3, none};
-enum testmode {base,pyramid_test,pyramid3x2_test,pyramid2x3_test,pyramid2x3_2layer,
+enum testmode {base,pyramid_test,pyramid2x3_2layer,
   packlift,packlift_2layer,packliftorient2,
   orient,orient2packet,orient_2layer,
   hpfprelift,hpfprelift_2layer};
@@ -136,13 +136,9 @@ public:
   void lp3x2_halfres();
   void lp3x2_encode(bool halfres, bool adapt=false);
   void lp3x2_decode(char *bitrate, bool halfres, bool adapt=false);
-  void lp3x2_encode(int depth, int layer, bool adapt=false);
-  void lp3x2_decode(char *bitrate, int depth, int layer, bool adapt=false);
   void lp2x3_halfres();
   void lp2x3_encode(bool halfres, bool adapt=false);
   void lp2x3_decode(char *bitrate, bool halfres, bool adapt=false);
-  void lp2x3_encode(int depth, int layer, bool adapt=false);
-  void lp2x3_decode(char *bitrate, int depth, int layer, bool adapt=false);
   // packet lifting functions (defined in packlift.cpp)
   friend void packet_transfer(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
@@ -210,8 +206,8 @@ protected:
   // done through indexing dwtlevel[vertical] and dwtlevel[horizontal]
   // as appropriate.
   int dwtlevel[2];
-  enum txtype txbase; // indicates the transform used, eg w5x3, w9x7, pyramid 
   double *pixels;
+  enum txtype txbase; // indicates the transform used, eg w5x3, w9x7, pyramid
 public:
   dwtnode *subbands[4]; // order of subbands: LL,HL,LH,HH
   orientationfield ofield;

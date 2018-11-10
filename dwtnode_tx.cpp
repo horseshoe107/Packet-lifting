@@ -15,7 +15,7 @@ void dwtnode::extract_subband(int band)
   int yoff = (band/2);
   if (subbands[band]!=NULL)
     delete subbands[band];
-  subbands[band] = new dwtnode((h+1-yoff)/2,(w+1-xoff)/2,dwtbase);
+  subbands[band] = new dwtnode((h+1-yoff)/2,(w+1-xoff)/2,txbase);
   // subband inherits dwtlevel from parent (default is 0)
   if (band==0) // LL
   {
@@ -312,61 +312,97 @@ void dwtnode::apply_gain_factors(double k0, double k1, direction dir)
 }
 void dwtnode::analysis(direction dir)
 {
-  if (dir == both)
-  {
-    analysis(vertical);
-    analysis(horizontal);
-    return;
-  }
-  switch (dwtbase)
+  switch (txbase)
   {
   case w5x3:
+    if (dir==both)
+    {
+      analysis(vertical);
+      analysis(horizontal);
+      return;
+    }
     apply_LHlift(-0.5,dir);
     apply_HLlift(0.25,dir);
     apply_gain_factors(1,0.5,dir);
+    dwtlevel[dir]++;
     break;
   case w9x7:
+    if (dir==both)
+    {
+      analysis(vertical);
+      analysis(horizontal);
+      return;
+    }
     apply_LHlift(-1.586134342,dir);
     apply_HLlift(-0.052980118,dir);
     apply_LHlift(0.882911075,dir);
     apply_HLlift(0.443506852,dir);
     apply_gain_factors(0.812893066,0.615087052,dir);
+    dwtlevel[dir]++;
+    break;
+  case pyramid:
+  case pyramid2x3:
+  case pyramid3x2:
+    if (dir != both)
+    {
+      cerr << "Pyramid analysis cannot be directional" << endl;
+      exit(1);
+    }
+    downsample_lift(true);
+    upsample_lift(true);
+    if (txbase==pyramid3x2)
+      downsample_lift(true);
+    dwtlevel[0]++;
+    dwtlevel[1]++;
     break;
   default:
-    cerr << "DWT kernel undefined!" << endl;
+    cerr << "Transform not specified!" << endl;
     exit(1);
-    break;
   }
-  dwtlevel[dir]++;
   return;
 }
 void dwtnode::synthesis(direction dir)
 {
-  if (dir == both)
-  {
-    synthesis(horizontal);
-    synthesis(vertical);
-    return;
-  }
-  dwtlevel[dir]--;
-  switch (dwtbase)
+  switch (txbase)
   {
   case w5x3:
+    if (dir == both)
+    {
+      synthesis(horizontal);
+      synthesis(vertical);
+      return;
+    }
+    dwtlevel[dir]--;
     apply_gain_factors(1,2,dir);
     apply_HLlift(-0.25,dir);
     apply_LHlift(0.5,dir);
     break;
   case w9x7:
+    if (dir == both)
+    {
+      synthesis(horizontal);
+      synthesis(vertical);
+      return;
+    }
+    dwtlevel[dir]--;
     apply_gain_factors(1.230174105,1.625786132,dir);
     apply_HLlift(-0.443506852,dir);
     apply_LHlift(-0.882911075,dir);
     apply_HLlift(0.052980118,dir);
     apply_LHlift(1.586134342,dir);
     break;
-  default:
-    cerr << "DWT kernel undefined!" << endl;
-    exit(1);
+  case pyramid2x3:
+    upsample_lift(false);
+  case pyramid3x2:
+   downsample_lift(false);
+  case pyramid:
+    upsample_lift(false);
+    dwtlevel[0]--;
+    dwtlevel[1]--;
     break;
+  default:
+    cerr << "Transform not specified!" << endl;
+    exit(1);
   }
   return;
 }
