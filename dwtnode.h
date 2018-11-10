@@ -1,8 +1,8 @@
 enum direction {vertical,horizontal,both};
 direction operator!(direction dir); // (defined in base.cpp)
 enum dwttype {w5x3, w9x7, disabled};
-enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,orient2,
-  packorient,packorient2,hpfprelift};
+enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,orient2packet,
+  orient2,packliftorient2,hpfprelift};
 class orientationfield
 {
   friend class dwtnode;
@@ -140,14 +140,14 @@ public:
   void packlift_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient_encode(bool halfres=false, bool adapt=false);
   void orient_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void packlift_orient_encode( bool halfres=false, bool adapt=false);
-  void packlift_orient_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void hpfprelift_encode(bool halfres=false, bool adapt=false);
-  void hpfprelift_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void orient2_packet_encode(bool halfres=false, bool adapt=false);
+  void orient2_packet_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient2_encode(bool halfres=false, bool adapt=false);
   void orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void packlift_orient2_encode(bool halfres=false, bool adapt=false);
   void packlift_orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void hpfprelift_encode(bool halfres=false, bool adapt=false);
+  void hpfprelift_decode(char *bitrate, bool halfres=false, bool adapt=false);
 // data members
 protected:
   int h,w; // height and width of the image

@@ -7,17 +7,19 @@ dwtnode::dwtnode(int hset, int wset, dwttype type, bool initzero)
   ofield.h=h=hset, ofield.w=w=wset, dwtbase=type;
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
   pixels = new double[h*w];
-  for (int n=0;n<4;n++)
-    subbands[n] = NULL;
   if (initzero)
     for (int n=0;n<h*w;n++)
       pixels[n]=0;
+  for (int n=0;n<4;n++)
+    subbands[n] = NULL;
 }
 // initialise with data from a file; currently only works for pgm
 dwtnode::dwtnode(char *fname, dwttype type)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
   dwtbase=type, pixels=NULL;
+  for (int n=0;n<4;n++)
+    subbands[n] = NULL;
   if (strcmp(fname+strlen(fname)-4,".pgm") == 0)
     pgmread(fname);
   else
@@ -25,13 +27,13 @@ dwtnode::dwtnode(char *fname, dwttype type)
     cerr << "File format not supported" << endl;
     exit(1);
   }
-  for (int n=0;n<4;n++)
-    subbands[n] = NULL;
 }
 dwtnode::dwtnode(char *fname, int hset, int wset, dwttype type, int expi)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
   dwtbase=type, pixels=NULL;
+  for (int n=0;n<4;n++)
+    subbands[n] = NULL;
   if (strcmp(fname+strlen(fname)-5,".rawl") == 0)
     rawlread(fname,hset,wset,expi);
   else
@@ -39,8 +41,6 @@ dwtnode::dwtnode(char *fname, int hset, int wset, dwttype type, int expi)
     cerr << "File format not supported" << endl;
     exit(1);
   }
-  for (int n=0;n<4;n++)
-    subbands[n] = NULL;
 }
 dwtnode::dwtnode(const dwtnode &target)
 {
@@ -134,19 +134,25 @@ void dwtnode::pgmread(char *fname)
   if (maxval != 255)
     cerr << "Warning: PGM is not an 8-bit file" << endl;
   chk_pgm_comment(pgmin, false);
-  if (pixels!=NULL) // clear any previous data in aoim object
-    delete[] pixels;
-  pixels = new double[h*w]; // assign space for pgm input
-  pgmin.ignore(); // skip last whitespace character
   dwtlevel[vertical]=0; dwtlevel[horizontal]=0;
+  if (pixels!=NULL)
+    delete[] pixels;
+  pixels = new double[h*w];
+  pgmin.ignore(); // skip last whitespace character
   for (int n=0;n<h*w;n++) // pixel values are in row-major form
   {
     pgmin.read(&tmp,1); // read image data
-    if (tmp<0)
+    if (tmp<0) // data is stored as unsigned but will be read as signed
       pixels[n] = (double) tmp+256;
     else pixels[n] = (double) tmp;
   }
   pgmin.close();
+  for (int n=0;n<4;n++)
+    if (subbands[n]!=NULL)
+    {
+      delete subbands[n];
+      subbands[n]=NULL;
+    }
   if ((h!=ofield.h)||(w!=ofield.w))
     ofield.clearfield(h,w);
   return;
@@ -172,6 +178,12 @@ void dwtnode::rawlread(char *fname, int hset, int wset, int expi)
     pixels[n] = t/expf; // floating point division
   }
   rawin.close();
+  for (int n=0;n<4;n++)
+    if (subbands[n]!=NULL)
+    {
+      delete subbands[n];
+      subbands[n]=NULL;
+    }
   if ((h!=ofield.h)||(w!=ofield.w))
     ofield.clearfield(h,w);
   return;
@@ -193,6 +205,12 @@ bool dwtnode::yuvstreamread(ifstream &yuvin)
     else pixels[n] = (double) tmp;
   }
   yuvin.ignore(h*w/2); // ignore colour components
+  for (int n=0;n<4;n++)
+    if (subbands[n]!=NULL)
+    {
+      delete subbands[n];
+      subbands[n]=NULL;
+    }
   if ((h!=ofield.h)||(w!=ofield.w))
     ofield.clearfield(h,w);
   return yuvin.good();

@@ -152,21 +152,36 @@ void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
 }
 void dwtnode::orient_encode(bool halfres, bool adapt)
 {
+  oriented_analysis(both);
+  if (!halfres)
+    synthesis(both);
+  rawlwrite("tmp\\out.rawl");
+  return;
+}
+void dwtnode::orient_decode(char *bitrate, bool halfres, bool adapt)
+{
+  rawl_decode(bitrate,halfres,adapt);
+  if (halfres)
+    return;
+  analysis(both);
+  oriented_synthesis(both);
+  return;
+}
+void dwtnode::orient2_packet_encode(bool halfres, bool adapt)
+{
   oriented_packet_analysis(both);
   if (halfres)
   {
 		extract_subband(0);
     subbands[0]->synthesis(both); // repacked for kdu encoding
     subbands[0]->rawlwrite("tmp\\out.rawl");
-		delete subbands[0];
-		subbands[0] = NULL;
 		return;
   }
   packet_synthesis(both);
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::orient_decode(char *bitrate, bool halfres, bool adapt)
+void dwtnode::orient2_packet_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
   if (halfres)
@@ -179,124 +194,86 @@ void dwtnode::orient_decode(char *bitrate, bool halfres, bool adapt)
   oriented_packet_synthesis(both);
   return;
 }
-void dwtnode::packlift_orient_encode(bool halfres, bool adapt)
-{
-  oriented_packet_analysis(both);
-  extract_subband(0);
-  extract_subband(1);
-  extract_subband(2);
-  subbands[1]->analysis(horizontal);
-  subbands[2]->analysis(vertical);
-  packlift(both,true,adapt);
-  if (halfres)
-  {
-    subbands[0]->synthesis(both);
-    subbands[0]->rawlwrite("tmp\\out.rawl");
-    return;
-  }
-  subbands[1]->synthesis(horizontal);
-  subbands[2]->synthesis(vertical);
-  interleave();
-  packet_synthesis(both);
-  rawlwrite("tmp\\out.rawl");
-  return;
-}
-void dwtnode::packlift_orient_decode(char *bitrate, bool halfres, bool adapt)
-{
-  rawl_decode(bitrate,halfres,adapt);
-  if (halfres)
-  {
-    analysis(both);
-    oriented_synthesis(both);
-    return;
-  }
-  packet_analysis(both);
-  extract_subband(0);
-  extract_subband(1);
-  extract_subband(2);
-  subbands[1]->analysis(horizontal);
-  subbands[2]->analysis(vertical);
-  packlift(both,false,adapt);
-  subbands[1]->synthesis(horizontal);
-  subbands[2]->synthesis(vertical);
-  interleave();
-  oriented_packet_synthesis(both);
-  return;
-}
 void dwtnode::orient2_encode(bool halfres, bool adapt)
 {
-  oriented_packet_analysis(both);
+  oriented_analysis(both);
   extract_subband(0); // ofield automatically inherited
   subbands[0]->oriented_analysis(both); // excluding detail subbands reduces aliasing
   subbands[0]->synthesis(both);
   if (halfres)
   {
-    subbands[0]->synthesis(both);
     subbands[0]->rawlwrite("tmp\\out.rawl");
     return;
   }
   interleave();
-  packet_synthesis(both);
+  synthesis(both);
   rawlwrite("tmp\\out.rawl");
   return;
 }
 void dwtnode::orient2_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
+  analysis(both);
   if (halfres)
   {
-    packet_analysis(both);
-    oriented_synthesis(both);
     oriented_synthesis(both);
     return;
   }
-  packet_analysis(both);
   extract_subband(0);
   subbands[0]->analysis(both);
   subbands[0]->oriented_synthesis(both);
   interleave();
-  oriented_packet_synthesis(both);
+  oriented_synthesis(both);
   return;
 }
 void dwtnode::packlift_orient2_encode(bool halfres, bool adapt)
 {
-  if (halfres)
-  {
-    cerr << "Not done yet" << endl;
-    exit(1);
-  }
-  oriented_packet_analysis(both);
+  oriented_analysis(both);
   extract_subband(0);
   extract_subband(1);
   extract_subband(2);
-  subbands[1]->analysis(horizontal);
-  subbands[2]->analysis(vertical);
-  packlift(both,true);
-  subbands[1]->synthesis(horizontal);
-  subbands[2]->synthesis(vertical);
+  subbands[0]->analysis(both);
+  subbands[1]->analysis(both);
+  subbands[2]->analysis(both);
+  packlift(both,true,adapt);
+  subbands[0]->synthesis(both);
   subbands[0]->oriented_analysis(both);
   subbands[0]->synthesis(both);
+  if (halfres)
+  {
+    subbands[0]->rawlwrite("tmp\\out.rawl");
+    return;
+  }
+  subbands[1]->synthesis(both);
+  subbands[2]->synthesis(both);
   interleave();
-  packet_synthesis(both);
+  synthesis(both);
   rawlwrite("tmp\\out.rawl");
   return;
 }
 void dwtnode::packlift_orient2_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
-  packet_analysis(both);
+  analysis(both);
+  if (halfres)
+  {
+    oriented_synthesis(both);
+    return;
+  }
   extract_subband(0);
-  subbands[0]->analysis(both);
-  subbands[0]->oriented_synthesis(both);
   extract_subband(1);
   extract_subband(2);
-  subbands[1]->analysis(horizontal);
-  subbands[2]->analysis(vertical);
-  packlift(both,false);
-  subbands[1]->synthesis(horizontal);
-  subbands[2]->synthesis(vertical);
+  subbands[0]->analysis(both);
+  subbands[0]->oriented_synthesis(both);
+  subbands[0]->analysis(both);
+  subbands[1]->analysis(both);
+  subbands[2]->analysis(both);
+  packlift(both,false,adapt);
+  subbands[0]->synthesis(both);
+  subbands[1]->synthesis(both);
+  subbands[2]->synthesis(both);
   interleave();
-  oriented_packet_synthesis(both);
+  oriented_synthesis(both);
   return;
 }
 void dwtnode::hpfprelift_encode(bool halfres, bool adapt)

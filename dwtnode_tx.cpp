@@ -189,8 +189,9 @@ double dwtnode::filt(double *f, int n, int offset, int N, direction dir, bool fo
     out += sig[i*skip]*f[fsign*(i-offset)];
   return out;
 }
-// Performs 3x3 averaging filter on the magnitude of the pixel values
-// The 1-dimension filter coefficients are [1/4 1/2 1/4]
+// Performs 3x3 averaging filter on the magnitude
+// The 1-dimension filter coefficients are [1/4 1/2 1/4], and the support
+// of the filter is centred on (x,y) and spaced by 2^dwtlevel
 // Pixel values beyond the boundary are extrapolated by constant extension
 double dwtnode::filt3x3abs(int y, int x)
 {
@@ -199,19 +200,21 @@ double dwtnode::filt3x3abs(int y, int x)
     cerr << "filt3x3abs error: y,x outside boundaries of the image" << endl;
     exit(1);
   }
-  int y0=(y==0)?0:y-1;
-  int y1=(y==(h-1))?h-1:y+1;
-  int x0=(x==0)?0:x-1;
-  int x1=(x==(w-1))?w-1:x+1;
-  double out = abs(pixels[y0*w+x0]);
-  out += abs(pixels[y0*w+x1]);
-  out += abs(pixels[y1*w+x0]);
-  out += abs(pixels[y1*w+x1]);
+  const int xstep = 1 << dwtlevel[horizontal];
+  const int ystep = 1 << dwtlevel[vertical];
+  int yminus=((y-ystep)<0)    ?y:y-ystep;
+  int yplus =((y+ystep)>(h-1))?y:y+ystep;
+  int xminus=((x-xstep)<0)    ?x:x-xstep;
+  int xplus =((x+xstep)>(w-1))?x:x+xstep;
+  double out = abs(pixels[yminus*w+xminus]);
+  out += abs(pixels[yminus*w+xplus]);
+  out += abs(pixels[yplus*w+xminus]);
+  out += abs(pixels[yplus*w+xplus]);
   out *= 0.5;
-  out += abs(pixels[y0*w+x]);
-  out += abs(pixels[y*w+x0]);
-  out += abs(pixels[y*w+x1]);
-  out += abs(pixels[y1*w+x]);
+  out += abs(pixels[yminus*w+x]);
+  out += abs(pixels[y*w+xminus]);
+  out += abs(pixels[y*w+xplus]);
+  out += abs(pixels[yplus*w+x]);
   out *= 0.5;
   out += abs(pixels[y*w+x]);
   out *= 0.25;

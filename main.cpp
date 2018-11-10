@@ -72,17 +72,20 @@ int orienttest(int argc, _TCHAR* argv[])
 }
 int compresstest(int argc, _TCHAR* argv[])
 {
-  char Cdecomp[] = "B(BH-H-:BVV--:-),B(B:B:B)";
+  char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
   char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+  //char currfile[] = "D:\\Work\\Images\\nonstandard\\sweptfreq.pgm";
+  //char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
   dwtnode in(currfile,w5x3);
   in.ofield.init_orient("sideinf\\barb4.dat");
+  //in.ofield.init_orient(4,8,8,4,0);
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
-  bool halfres=false; // compute mses for half resolution instead
+  bool halfres=true; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=packorient2;
+  testmode mode=hpfprelift;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
@@ -98,8 +101,8 @@ int compresstest(int argc, _TCHAR* argv[])
     break;
   case packlift:
     encode_ptr = &dwtnode::packlift_encode;
-    decode_ptr = &dwtnode::packlift_decode;
     dout << "Packet lifting MSEs";
+    decode_ptr = &dwtnode::packlift_decode;
     if (halfres)
     {
       ref.analysis(both);
@@ -139,6 +142,15 @@ int compresstest(int argc, _TCHAR* argv[])
 		decode_ptr = &dwtnode::orient_decode;
     if (halfres)
     {
+      ref.oriented_analysis(both);
+    }
+    break;
+  case orient2packet:
+    encode_ptr = &dwtnode::orient2_packet_encode;
+    dout << "Oriented packet wavelet MSEs";
+		decode_ptr = &dwtnode::orient2_packet_decode;
+    if (halfres)
+    {
       ref.oriented_packet_analysis(both);
       ref.extract_subband(0);
       ref.subbands[0]->oriented_synthesis(both);
@@ -152,39 +164,29 @@ int compresstest(int argc, _TCHAR* argv[])
     decode_ptr = &dwtnode::orient2_decode;
     if (halfres)
     {
-      ref.oriented_packet_analysis(both);
-      ref.extract_subband(0);
-      ref.subbands[0]->oriented_synthesis(both);
-      dwtnode tmp(*ref.subbands[0]);
-      ref = tmp;
+      ref.oriented_analysis(both);
     }
     break;
-  case packorient:
-    encode_ptr = &dwtnode::packlift_orient_encode;
-    dout << "Oriented + packlift MSEs";
-    decode_ptr = &dwtnode::packlift_orient_decode;
-    if (halfres)
-    {
-      ref.oriented_packet_analysis(both);
-      ref.extract_subband(0);
-      ref.extract_subband(1);
-      ref.extract_subband(2);
-      ref.subbands[1]->analysis(horizontal);
-      ref.subbands[2]->analysis(vertical);
-      ref.packlift(both,true,adapt);
-      ref.subbands[0]->oriented_synthesis(both);
-      dwtnode tmp(*ref.subbands[0]);
-      ref = tmp;
-    }
-    break;
-  case packorient2:
+  case packliftorient2:
     encode_ptr = &dwtnode::packlift_orient2_encode;
     dout << "2 level oriented + packlift MSEs";
     decode_ptr = &dwtnode::packlift_orient2_decode;
     if (halfres)
-      exit(1);
+    {
+      ref.oriented_analysis(both);
+      ref.extract_subband(0);
+      ref.extract_subband(1);
+      ref.extract_subband(2);
+      ref.subbands[0]->analysis(both);
+      ref.subbands[1]->analysis(both);
+      ref.subbands[2]->analysis(both);
+      ref.packlift(both,true,adapt);
+      ref.subbands[0]->synthesis(both);
+      ref.interleave(true);
+    }
     break;
   default:
+    cerr << "This test mode is unsupported" << endl;
     exit(1);
   }
   {
@@ -237,7 +239,7 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=packlift;
+  testmode mode=hpfprelift;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
@@ -253,8 +255,8 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
     break;
   case packlift:
     encode_ptr = &dwtnode::packlift_encode;
-    decode_ptr = &dwtnode::packlift_decode;
     dout << "Packet lifting MSEs";
+    decode_ptr = &dwtnode::packlift_decode;
     if (halfres)
     {
       ref.analysis(both);
@@ -270,19 +272,6 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
     }
     if (adapt) dout << " adaptive";
     break;
-  case orient:
-    encode_ptr = &dwtnode::orient_encode;
-    dout << "Oriented wavelet MSEs";
-		decode_ptr = &dwtnode::orient_decode;
-    if (halfres)
-    {
-      ref.oriented_packet_analysis(both);
-      ref.extract_subband(0);
-      ref.subbands[0]->oriented_synthesis(both);
-      dwtnode tmp(*ref.subbands[0]);
-      ref = tmp;
-    }
-    break;
   case hpfprelift:
     encode_ptr = &dwtnode::hpfprelift_encode;
     dout << "HPF prelift MSEs";
@@ -292,7 +281,9 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
       ref.hpf_oriented_analysis(both,adapt);
     }
     break;
-  default: exit(1);
+  default:
+    cerr << "This test mode is unsupported" << endl;
+    exit(1);
   }
   {
     (in.*encode_ptr)(halfres,adapt);
@@ -343,19 +334,18 @@ int hpftest(int argc, _TCHAR* argv[])
   in.ofield.setaffinefield();
 
 	in.hpf_oriented_analysis(vertical,true);
-  //in.oriented_analysis(vertical);
-  in.oriented_analysis(horizontal);
-	in.pgmwrite("hpf_everywhere_updatewithoutaliasing.pgm");
+  in.hpf_oriented_analysis(horizontal,true);
+	in.pgmwrite("test.pgm");
 
   return 0;
 }
 int _tmain(int argc, _TCHAR* argv[])
 {
   //system("del sideinf\\alpha_transfer.dat");
-  compresstest(argc,argv);
+  //compresstest(argc,argv);
   //orienttest(argc,argv);
 	//estimate(argc,argv);
   //hpftest(argc,argv);
-  //hpfcompresstest(argc,argv);
+  hpfcompresstest(argc,argv);
   return 0;
 }
