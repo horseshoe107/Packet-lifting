@@ -102,17 +102,17 @@ int compresstest(int argc, char* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
   //char Cdecomp[] = "B(-:-:-),B(-:-:-)";
-  char currfile[] = "D:\\Work\\Images\\lighthouse.pgm";
+  char currfile[] = "D:\\Work\\Images\\bikecrop.pgm";
   std::ofstream dout("results\\dumpout.txt",std::ios::app);
-  txtype txtest = pyramid;
+  txtype txtest = w5x3;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
-  int depth=1; // number of layers of scalability to create
-  int layer=1; // compute mses for encoding layer (0 is full resolution)
+  int depth=2; // number of layers of scalability to create
+  int layer=0; // compute mses for encoding layer (0 is full resolution)
   bool imageout=(layer>0); // dump out compressed, decoded images and collate
-  testmode mode=pyramid_test;
+  testmode mode=hpfprelift;
   dwtnode in(currfile,txtest);
-  in.ofield.init_orient("sideinf\\lighthouse_1244.dat");
+  in.ofield.init_orient("sideinf\\bikecrop_11241.dat");
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   void (dwtnode::*encode_ptr)(int, int, bool) = NULL;
@@ -222,16 +222,13 @@ int compresstest(int argc, char* argv[])
     encode_ptr = &dwtnode::hpfprelift_encode;
     dout << "HPF prelift MSEs";
     decode_ptr = &dwtnode::hpfprelift_decode;
-    if (halfres)
-      ref.hpf_oriented_analysis(both,adapt);
+    dwtnode *curr = &ref;
+    for (int i=0;i<layer;i++,curr=curr->subbands[0])
+    {
+      curr->hpf_oriented_analysis(both,adapt);
+      curr->extract_subband(0);
+    }
     break;}
-  //case hpfprelift_2layer:{
-  //  encode_ptr = &dwtnode::hpfprelift_2layer_encode;
-  //  dout << "2 level HPF prelift MSEs";
-  //  decode_ptr = &dwtnode::hpfprelift_2layer_decode;
-  //  if (halfres)
-  //    ref.hpf_oriented_analysis(both,adapt);
-  //  break;}
   default:
     std::cerr << "This test mode is unsupported" << std::endl;
     exit(1);

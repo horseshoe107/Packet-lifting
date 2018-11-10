@@ -6,7 +6,7 @@ void dwtnode::extract_subband(int band)
   if ((dwtlevel[vertical]==0)||(dwtlevel[horizontal]==0))
   {
     std::cerr << "Subband cannot be extracted - image is still in"
-      "baseband form in at least one direction." << std::endl;
+      " baseband form in at least one direction." << std::endl;
     exit(1);
   }
   // calculate the offsets for the subband when it is in

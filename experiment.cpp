@@ -126,6 +126,11 @@ void dwtnode::call_batch(testmode mode, char *Cdecomp, int depth, int layer, std
     if (*Cdecomp==',')
       Cdecomp++;
   }
+  if (((h>>layer)<<layer != h)||((w>>layer)<<layer != w))
+  {
+    std::cerr << "Image dimensions are not a multiple of 2^layers" << std::endl;
+    exit(1);
+  }
   int layerh = h>>layer;
   int layerw = w>>layer;
   if (mode==pyramid_test)
@@ -137,9 +142,9 @@ void dwtnode::call_batch(testmode mode, char *Cdecomp, int depth, int layer, std
   {
     batch << "out.bat";
   }
-  fout << "depth " << depth << " layer " << layer << kdudwt_strings[dwt_mode]
+  fout << " depth " << depth << " layer " << layer << kdudwt_strings[dwt_mode]
     << " Cdecomp=" << Cdecomp << std::endl;
-  batch <<" "<<layerh<<" "<<layerw<<" "<<dwt_mode<<" \""<<Cdecomp<<"\"";
+  batch <<" "<<layerh<<" "<<layerw<<" "<<dwt_mode<<" \""<<Cdecomp<<"\" "<<layer;
   system(batch.str().c_str());
 }
 // wrappers for analysis-encode-decode-synthesis experimentation
@@ -173,9 +178,9 @@ void dwtnode::rawl_decode(char *bitrate, int depth, int layer, bool adapt)
   fname += bitrate;
   fname += ".rawl";
   rawlread((char *)fname.c_str());
-  dwtlevel[vertical]=dwtlevel[horizontal]=depth-layer;
-  for (int i=depth-1;i>=layer;i--)
-    synthesis(both);
+  //dwtlevel[vertical]=dwtlevel[horizontal]=depth-layer;
+  //for (int i=depth-1;i>=layer;i--)
+  //  synthesis(both);
 }
 void dwtnode::packlift_encode(bool halfres, bool adapt)
 {
@@ -412,12 +417,20 @@ void dwtnode::hpfprelift_encode(int depth, int layer, bool adapt)
   for (int i=0;i<depth;i++,curr=curr->subbands[0])
   {
     curr->hpf_oriented_analysis(both,adapt);
+    // extract subband so that subsequent oriented analysis do not use
+    // the detail bands
     curr->extract_subband(0);
   }
-  for (int i=depth-1;i<=layer;i--)
-  {
-
+  for (int i=depth-1;i>=layer;i--)
+  { // wavelet synthesis
+    curr = this;
+    for (int j=0;j<i;j++,curr=curr->subbands[0])
+      ;
+    curr->interleave();
+    curr->synthesis(both);
   }
+  curr->rawlwrite("tmp\\out.rawl");
+  return;
 }
 void dwtnode::hpfprelift_decode(char *bitrate, bool halfres, bool adapt)
 {
@@ -431,6 +444,22 @@ void dwtnode::hpfprelift_decode(char *bitrate, bool halfres, bool adapt)
 }
 void dwtnode::hpfprelift_decode(char *bitrate, int depth, int layer, bool adapt)
 {
+  rawl_decode(bitrate,depth,layer,adapt);
+  dwtnode *curr = this;
+  for (int i=layer;i<depth;i++,curr=curr->subbands[0])
+  {
+    curr->analysis(both);
+    curr->extract_subband(0);
+  }
+  for (int i=depth-1;i>=layer;i--)
+  {
+    curr = this;
+    for (int j=layer;j<i;j++,curr=curr->subbands[0])
+      ;
+    curr->interleave();
+    curr->hpf_oriented_synthesis(both,adapt);
+  }
+  return;
 }
 void dwtnode::hpfprelift_2layer_encode(bool halfres, bool adapt)
 {
