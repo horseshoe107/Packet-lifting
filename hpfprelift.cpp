@@ -139,8 +139,8 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
         //if (adapt&&(sigma0==0)&&(sigma1==0)) // adaptivity check
         //  adaptswitch[y*w+x]=false;
         //else adaptswitch[y*w+x]=true;
-        kernel_selection(x,-sigma0,dir,z0,lut0,ksig0);
-        kernel_selection(x,sigma1,dir,z1,lut1,ksig1);
+        kernel_selection(x,-sigma0,horizontal,z0,lut0,ksig0);
+        kernel_selection(x,sigma1,horizontal,z1,lut1,ksig1);
         if (y==0) // top edge must be replicated
           tmp0.pixels[x] = tmp1.pixels[x] = a*
               filt(splines+lut1,(y+s)*w+x,-z1,N,horizontal,ksig1);
@@ -210,6 +210,7 @@ void dwtnode::hpf_oriented_analysis(direction dir, bool adapt)
 #ifdef HORIZONTALREADY
 		hpf_oriented_analysis(horizontal,adapt);
 #else
+    cout << "horizontal hpf_antialiasing currently disabled" << endl;
     oriented_analysis(horizontal);
 #endif
 		return;

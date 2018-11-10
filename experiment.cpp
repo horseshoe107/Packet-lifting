@@ -3,6 +3,10 @@
 #include "dwtnode.h"
 extern double splines[];
 extern const int splines_extent;
+extern double inbandker_lut[];
+extern const int inbandker_extent;
+extern double packetker_lut[];
+extern const int packetker_extent;
 double mse(dwtnode &a, dwtnode &b)
 {
   if ((a.h>>a.dwtlevel[vertical]!=b.h>>b.dwtlevel[vertical])
@@ -29,17 +33,23 @@ double mse(dwtnode &a, dwtnode &b)
 }
 // applies a constant shift of (sigma/lutprec) pixels in the horizontal
 // direction to the entire image
-void dwtnode::shift(int sigma)
+void dwtnode::shift(int sigma, direction dir)
 {
   int z, sker;
   bool ksig;
+  double *lut = (dwtlevel[dir]==0)?splines:
+    (dwtlevel[dir]==1)?inbandker_lut:packetker_lut;
+  const int N = (dwtlevel[dir]==0)?splines_extent:
+    (dwtlevel[dir]==1)?inbandker_extent:packetker_extent;
   double *pixdest = new double[h*w];
-  for (int y=0;y<h;y++)
-    for (int x=0;x<w;x++)
+  for (int x=0;x<w;x++)
+  {
+    kernel_selection(x,sigma,dir,z,sker,ksig);
+    for (int y=0;y<h;y++)
     { // if LUT acts on subband coefficients, modify kernel selection
-      kernel_selection(x,sigma,horizontal,z,sker,ksig);
-      pixdest[y*w+x] = filt(splines+sker,y*w+x,-z,splines_extent,horizontal,ksig);
+      pixdest[y*w+x] = filt(lut+sker,y*w+x,-z,N,dir,ksig);
     }
+  }
   delete[] pixels;
   pixels = pixdest;
   return;
@@ -210,9 +220,6 @@ void dwtnode::aa_orient_decode(char *bitrate, bool adapt)
 }
 void dwtnode::orient2_encode(bool out, bool est)
 {
-  //Legacy code chunk; this implementation reconstructs LL1
-  //without access to LH1 and HL1. Substantial artifacts appear
-  //due to this imperfection
   oriented_packet_analysis(both);
   extract_subband(0);
   if (out)
@@ -228,56 +235,18 @@ void dwtnode::orient2_encode(bool out, bool est)
   subbands[0]->synthesis(both); // synthesise back up to LL1
   interleave();
   packet_synthesis(both);
-  //in.oriented_packet_analysis(shftbase,shftpoly4);
-  //in.extract_subband(0);
-  //in.subbands[0]->oriented_synthesis(shftbase,shftpoly2);
-  //in.subbands[0]->pgmwrite("barb_rightleg.pgm");
-
-  //oriented_packet_analysis(shftbase,shftpoly4);
-  //extract_subband(1);
-  //subbands[1]->synthesis(vertical); // ordinary synthesis of HL1
-  //extract_subband(2);
-  //subbands[2]->synthesis(horizontal); // ordinary synthesis of LH1
-  //this->operating_depth = 1; // only write to LL1 pixels
-  //oriented_synthesis(shftpoly2,shftpoly4);
-  //this->operating_depth = 0;
-  //extract_subband(0);
-  //if (out)
-  //  subbands[0]->pgmwrite("tmp\\or2_LL1.pgm");
-  //if (est)
-  //  ;
-  //subbands[0]->oriented_packet_analysis(shftbase,shftpoly4);
-  //subbands[0]->packet_synthesis(both);
-  //interleave();
-  //synthesis(both);
   rawlwrite("tmp\\out.rawl");
   return;
 }
 void dwtnode::orient2_decode(char *fname, bool est)
 {
   rawlread(fname,h,w);
-  //Legacy code chunk
   packet_analysis(both);
   extract_subband(0);
   subbands[0]->analysis(both);
   subbands[0]->oriented_synthesis(both);
   interleave();
   oriented_packet_synthesis(both);
-  //analysis(both);
-  //extract_subband(0);
-  //if (est)
-  //  subbands[0]->ofield.init_orient("tmp\\LLorient.dat");
-  //subbands[0]->packet_analysis(both);
-  //subbands[0]->oriented_packet_synthesis(shftbase,shftpoly4);
-  //extract_subband(1);
-  //subbands[1]->analysis(vertical);
-  //extract_subband(2);
-  //subbands[2]->analysis(horizontal);
-  //interleave(true); // suppress warnings about incompatible dwt levels
-  //this->operating_depth = 1;
-  //oriented_analysis(shftpoly2,shftpoly4);
-  //this->operating_depth = 0;
-  //oriented_packet_synthesis(shftbase,shftpoly4);
   return;
 }
 void dwtnode::aa_orient2_encode(bool out, bool est)

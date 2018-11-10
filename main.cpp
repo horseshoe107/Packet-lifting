@@ -21,9 +21,9 @@ int compresstest(int argc, _TCHAR* argv[])
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
-  bool halfres=false; // compute mses for half resolution instead
+  bool halfres=true; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=orient;
+  testmode mode=base;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool) = NULL;
   switch (mode)
@@ -84,9 +84,11 @@ int compresstest(int argc, _TCHAR* argv[])
     if (halfres)
     {
       decode_ptr = &dwtnode::rawl_decode;
-      ref.oriented_analysis(both);
-      cerr << " half res not yet implemented!";
-      exit(1);
+      ref.oriented_packet_analysis(both);
+      ref.extract_subband(0);
+      ref.subbands[0]->oriented_synthesis(both);
+      dwtnode tmp(*ref.subbands[0]);
+      ref = tmp;
     }
     break;
   case aaorient:
@@ -285,8 +287,7 @@ int orienttest(int argc, _TCHAR* argv[])
       break;
 	  case recon1: // reconstruct w/ all subbands
 		  in.oriented_packet_analysis(both);
-		  in.oriented_synthesis(horizontal);
-		  in.oriented_synthesis(vertical);
+		  in.oriented_synthesis(both);
 		  in.pgmwrite("LL1recon1.pgm");
 		  break;
 	  case recon2: // reconstruct only w/ LL1
@@ -301,15 +302,37 @@ int orienttest(int argc, _TCHAR* argv[])
   }
 	return 0;
 }
+int shifttest(int argc, _TCHAR* argv[])
+{
+  char currfile[] = "D:\\Work\\Images\\city0.pgm";
+  ofstream yuvout("shifttest.yuv",ios::binary);
+  if (!yuvout.good())
+  {
+    cerr << "Access of file unsuccessful." << endl;
+    exit(1);
+  }
+  for (int sigma=0;sigma<80;sigma++)
+  {
+    dwtnode in(currfile,w5x3);
+    in.ofield.init_orient(4,8,32,0,0);
+    in.analysis(horizontal);
+    in.analysis(horizontal);
+    in.shift(sigma,horizontal);
+    in.synthesis(horizontal);
+    in.synthesis(horizontal);
+    in.yuvstreamwrite(yuvout);
+  }
+  yuvout.close();
+  return 0;
+}
 int _tmain(int argc, _TCHAR* argv[])
 {
   //system("del sideinf\\alpha_transfer.dat");
-  //system("del sideinf\\alpha_cancel.dat");
-  //system("del sideinf\\cancel_energy.dat");
-  //compresstest(argc,argv);
-  orienttest(argc,argv);
+  compresstest(argc,argv);
+  //orienttest(argc,argv);
 	//estimate(argc,argv);
   //hpftest(argc,argv);
   //hpfcompresstest(argc,argv);
+
   return 0;
 }

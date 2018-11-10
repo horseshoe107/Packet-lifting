@@ -1,4 +1,5 @@
 enum direction {vertical,horizontal,both};
+direction operator!(direction dir); // (defined in base.cpp)
 enum dwttype {w5x3, w9x7, disabled};
 enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,aaorient,hpfprelift};
 class orientationfield
@@ -59,6 +60,7 @@ public:
   dwtnode(char *fname, dwttype);
   dwtnode(char *fname, int hset, int wset, dwttype, int expi=6);
 	dwtnode(const dwtnode &copy);
+  dwtnode& operator=(const dwtnode &target);
   virtual ~dwtnode()
   {
     for (int n=0;n<4;n++)
@@ -127,7 +129,7 @@ public:
   void hpf_oriented_synthesis(direction, bool adaptive=true);
   // experiment testing functions (defined in experiment.cpp)
   friend double mse(dwtnode &a, dwtnode &b);
-  void shift(int sigma);
+  void shift(int sigma, direction);
   void halveimage(bool);
   void call_batch(testmode mode, bool halfres, ofstream &fout);
   void rawl_encode(bool halfres=false, bool adapt=false);

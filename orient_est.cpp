@@ -71,7 +71,7 @@ void estorient::calc_energies()
         {
           tmpV = tmpH = pixels[y*w+x];
           // calculate the vertical high-pass energy
-          kernel_selection(x,sigma,vertical,z,sker,ksig);
+          kernel_selection(x,sigma,horizontal,z,sker,ksig);
           if (y==0) // top edge must be replicated
             tmpV -= filt(splines+sker,(y+1)*w+x,-z,splines_extent,horizontal,ksig);
           else if (y==h-1) // bottom edge must be replicated
@@ -81,7 +81,7 @@ void estorient::calc_energies()
                        +filt(splines+sker,(y+1)*w+x,-z,splines_extent,horizontal,ksig) );
           accVenergy += tmpV*tmpV; // accumulate for all pixels in the block
           // calc horizontal high-pass energy
-          kernel_selection(y,sigma,horizontal,z,sker,ksig);
+          kernel_selection(y,sigma,vertical,z,sker,ksig);
           if (x==0) // top edge must be replicated
             tmpH -= filt(splines+sker,y*w+x+1,-z,splines_extent,vertical,ksig);
           else if (x==w-1) // bottom edge must be replicated

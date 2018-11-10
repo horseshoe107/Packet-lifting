@@ -13,6 +13,8 @@ void dwtnode::extract_subband(int band)
   // interleaved form
   int xoff = (band%2);
   int yoff = (band/2);
+  if (subbands[band]!=NULL)
+    delete subbands[band];
   subbands[band] = new dwtnode((h+1-yoff)/2,(w+1-xoff)/2,dwtbase);
   // subband inherits dwtlevel from parent (default is 0)
   if (band==0) // LL

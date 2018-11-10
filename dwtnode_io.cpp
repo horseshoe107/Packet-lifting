@@ -61,6 +61,32 @@ dwtnode::dwtnode(const dwtnode &target)
   }
 	ofield.copy(target.ofield);
 }
+dwtnode& dwtnode::operator=(const dwtnode &target)
+{
+  if (this == &target)
+    return *this;
+  this->h=target.h;
+  this->w=target.w;
+  dwtlevel[vertical]=target.dwtlevel[vertical];
+  dwtlevel[horizontal]=target.dwtlevel[horizontal];
+  dwtbase=target.dwtbase;
+  if (pixels!=NULL)
+    delete[] pixels;
+  pixels = new double[h*w];
+  for (int n=0;n<h*w;n++)
+    pixels[n]=target.pixels[n];
+  for (int n=0;n<4;n++)
+  {
+    if (this->subbands[n]!=NULL)
+      delete this->subbands[n];
+    if (target.subbands[n]==NULL)
+      this->subbands[n]=NULL;
+    else
+      this->subbands[n]= new dwtnode(*target.subbands[n]);
+  }
+	ofield.copy(target.ofield);
+  return *this;
+}
 void chk_pgm_comment(ifstream &in, bool eatspace)
 {
   char c;

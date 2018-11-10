@@ -43,7 +43,7 @@ double inbandker_lut[] = {0, 0, 0, 0, 1, 0, 0, 0, 0,
 0.0692138672, -0.1189138257, 0.1361083984, 0.0110066581,
 -0.0036764968, 0.0078125000, -0.0668319941, -0.4921875000, 0.1625555144,
 0.3359375000, -0.1057678963, 0.1484375000, 0.0137208727};
-const int inbandker_extent = 4;
+extern const int inbandker_extent = 4;
 double packetker_lut[] =
  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 -0.0011786749, 0, 0.0022794374, -0.0048141479, 0.0187405642, 0.0260925293,
@@ -306,7 +306,7 @@ double packetker_lut[] =
 0.0000734755, 0, -0.0001516121, 0, 0.0181601219, 0, -0.0372244741, 0.0078125000,
 -0.1527910682, -0.4921875000, 0.0754807803, 0.3359375000, -0.2299398505,
 0.1484375000, -0.0386705183, 0, 0.0210225757, 0, 0.0005658242, 0, -0.0002742144};
-const int packetker_extent = 10;
+extern const int packetker_extent = 10;
 extern const int lutprec = 8;
 // clears existing orientation data and sets dimensions
 // to match the image. call this whenever a new image has
@@ -378,9 +378,12 @@ void orientationfield::transpose()
   swap(h,w);
   return;
 }
-// given the output destination pixel (n) and the desired shift
-// (sigma) expressed in 1/oprec units, splits the shift into its
-// integral (z) and fractional (LUT_index, shiftdirection) components.
+// Given a shift (sigma) expressed in 1/oprec units, kernel_selection
+// determines the integer (z) component, and what filter should be used
+// (LUT_index, shiftdirection) to implement the fractional component.
+// 
+// n must be the index along the dimension of the shift filtering of the
+// output - ie x in the horizontal direction or y vertically.
 //
 // (LUT_index) selects the appropriate filter from the LUT for the desired
 // shift. As the LUT only stores filters for positive shifts,
@@ -404,10 +407,10 @@ void dwtnode::kernel_selection(int n, int sigma, direction dir, int &z,
       << endl;
     exit(2);
   }
-	const int N = (dwtlevel[!dir]==0)?splines_extent:
-    (dwtlevel[!dir]==1)?inbandker_extent:packetker_extent;
-	const int p = (dwtlevel[!dir]==0)?1: // periodicity
-		(dwtlevel[!dir]==1)?2:4;
+	const int N = (dwtlevel[dir]==0)?splines_extent:
+    (dwtlevel[dir]==1)?inbandker_extent:packetker_extent;
+	const int p = (dwtlevel[dir]==0)?1: // periodicity
+		(dwtlevel[dir]==1)?2:4;
 	const int veclen = 2*N+1;
 	const int skip = lutprec/ofield.oprec;
   const int vecskip = skip*veclen; // elements to skip per sub-pixel shift increment
@@ -417,7 +420,7 @@ void dwtnode::kernel_selection(int n, int sigma, direction dir, int &z,
   // select kernels for the fractional-pixel shifts
   shiftdirection = (sigma >= z*ofield.oprec);
   LUT_index = abs(sigma - z*ofield.oprec)*vecskip + N;
-  if (dwtlevel[!dir]!=0) // if LUT acts directly on subband coefficients
+  if (dwtlevel[dir]!=0) // if LUT acts directly on subband coefficients
   { // modify kernel for subband type of the destination pixel
     LUT_index += (n%p)*phaseskip;
     // modify kernel for subband pattern of the support
@@ -462,8 +465,8 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
           sigma1 += ofield.retrieve(y+n,x+divround(-sigma1,ofield.oprec),vertical);
         }
         // break shifts down to integer shifts and LUT indices for filter selection
-        kernel_selection(x,-sigma0,dir,z0,lut0,ksig0); // refer bk3p65
-        kernel_selection(x,sigma1,dir,z1,lut1,ksig1);
+        kernel_selection(x,-sigma0,horizontal,z0,lut0,ksig0); // refer bk3p65
+        kernel_selection(x,sigma1,horizontal,z1,lut1,ksig1);
         if (y==last) // bottom edge must be replicated
           pixels[y*w+x] += 2*a*
               filt(lut+lut0,(y-s)*w+x,-z0,N,horizontal,ksig0);
@@ -481,8 +484,8 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
           sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
           sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
         }
-        kernel_selection(y,-sigma0,dir,z0,lut0,ksig0);
-        kernel_selection(y,sigma1,dir,z1,lut1,ksig1);
+        kernel_selection(y,-sigma0,vertical,z0,lut0,ksig0);
+        kernel_selection(y,sigma1,vertical,z1,lut1,ksig1);
         if (x==last) // bottom edge must be replicated
           pixels[y*w+x] += 2*a*
               filt(lut+lut0,y*w+x-s,-z0,N,vertical,ksig0);
@@ -525,8 +528,8 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
           sigma0 += ofield.retrieve(y-1-n,x+divround(sigma0,ofield.oprec),vertical);
           sigma1 += ofield.retrieve(y+n,x+divround(-sigma1,ofield.oprec),vertical);
         }
-        kernel_selection(x,-sigma0,dir,z0,lut0,ksig0);
-        kernel_selection(x,sigma1,dir,z1,lut1,ksig1);
+        kernel_selection(x,-sigma0,horizontal,z0,lut0,ksig0);
+        kernel_selection(x,sigma1,horizontal,z1,lut1,ksig1);
         if (y==0) // top edge must be replicated
           pixels[y*w+x] += 2*a*
               filt(lut+lut1,(y+s)*w+x,-z1,N,horizontal,ksig1);
@@ -547,8 +550,8 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
           sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
           sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
         }
-        kernel_selection(y,-sigma0,dir,z0,lut0,ksig0);
-        kernel_selection(y,sigma1,dir,z1,lut1,ksig1);
+        kernel_selection(y,-sigma0,vertical,z0,lut0,ksig0);
+        kernel_selection(y,sigma1,vertical,z1,lut1,ksig1);
         if (x==0) // replicate left edge
           pixels[y*w+x] += 2*a*
               filt(lut+lut1,y*w+x+s,-z1,N,vertical,ksig1);

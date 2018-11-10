@@ -52,3 +52,16 @@ double * convolve(double *f1, int n1, double *f2, int n2)
       f[i+j] += f1[i]*f2[j];
   return f;
 }
+direction operator!(direction dir)
+{
+  switch (dir)
+  {
+    case vertical:
+      return horizontal;
+    case horizontal:
+      return vertical;
+    default:
+      cerr << "Inverse of this direction has no meaning" << endl;
+      exit(1);
+  }
+}
