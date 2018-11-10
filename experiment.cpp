@@ -56,17 +56,20 @@ void dwtnode::shift(int sigma, direction dir)
 }
 void dwtnode::halveimage()
 {
-  h=(h+1)/2;
-  w=(w+1)/2;
-  if (ofield.blksz%2!=0) // blksz needs to be multiple of 2
+  ofield.h=h=(h+1)/2;
+  ofield.w=w=(w+1)/2;
+  if (ofield.blksz==1)
+  {
+    cerr << "Warning: orientation field incorrect now" << endl;
+  }
+  else if (ofield.blksz%2!=0) // blksz needs to be multiple of 2
   {
     cerr << "Subsampling of shift field is not defined for ";
     cerr << "block size " << ofield.blksz << endl;
     exit(1);
   }
-  ofield.h=h;
-  ofield.w=w;
-  ofield.blksz >>= 1;
+  else
+    ofield.blksz >>= 1;
 }
 // call the appropriate batch file of kdu_compress and kdu_expand commands
 // also writes to fout the tested resolution and dwt filters used

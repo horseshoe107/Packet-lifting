@@ -20,11 +20,6 @@ static double g1_coeffs[] = {-0.25, -0.5, 1.5, -0.5, -0.25};
 static double hpf_coeffs[] = {-2.0/64,0,4.0/64,3.0/64,-5.0/64,
   -19.0/64,38.0/64,-19.0/64,-5.0/64,3.0/64,4.0/64,0,-2.0/64};
 #define HPF_EXTENT 6
-//static double hpf_coeffs[] = {-0.079,0.1177,0.005,0.0418,-0.4092,
-//  0.6475,-0.4092,0.0418,0.005,0.1177,-0.079};
-//static double hpf_coeffs[] = {-0.035,0.073,0.048,-0.04447,-0.33545,
-//    0.58775,-0.33545,-0.04447,0.048,0.073,-0.035};
-//#define HPF_EXTENT 5
 static double *g0_filter = g0_coeffs + G0_EXTENT;
 static double *g1_filter = g1_coeffs + G1_EXTENT;
 static double *hpf_h0_filter;
@@ -223,7 +218,7 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
       }
     for (int x=0;x<w;x+=2*s)
       for (int y=0;y<h;y+=2)
-        if (ofield.retrieve(y,x,!dir)==0)
+        if (ofield.retrieve(y,x,!dir)==0) // skip step if orthogonal direction is oriented
         { // filter v0 and v1
           double sum_n = sum.filt3x3abs(y/2,x/s/2);
 				  double diff_n = diff.filt3x3abs(y/2,x/s/2);
@@ -238,7 +233,8 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
 double update_adaptivity_lookup(double alias, double lowE)
 {
   double aliasE = abs(alias);
-  if (aliasE < 0.6752*lowE)
+  //if (aliasE < 0.6752*lowE)
+  if (aliasE < 0.5*lowE)
     return 0;
   return 1;
 }
@@ -303,7 +299,7 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
 		for (int y=0;y<h;y+=2*s)
 			for (int xsub=0;xsub<w;xsub+=2)
 			{
-        if (ofield.retrieve(y,xsub,!dir)==0)
+        if (ofield.retrieve(y,xsub,!dir)==0) // if orthogonal direction is not oriented
         {
           double b0 = v0.pixels[y/s/2*v0.w+xsub/2];
           double b1 = v1.pixels[y/s/2*v1.w+xsub/2];
@@ -353,7 +349,7 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
     for (int x=0;x<w;x+=2*s)
       for (int y=0;y<h;y+=2)
       {
-        if (ofield.retrieve(y,x,!dir)==0)
+        if (ofield.retrieve(y,x,!dir)==0) // if orthogonal direction is not oriented
         {
           double b0 = v0.pixels[y/2*v0.w+x/s/2];
           double b1 = v1.pixels[y/2*v1.w+x/s/2];

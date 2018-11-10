@@ -13,13 +13,13 @@ int estimate(int argc, _TCHAR* argv[])
 }
 int quadtree_estimate(int argc, _TCHAR* argv[])
 {
-  char currfile[] = "D:\\Work\\Images\\bikecrop1024.pgm";
+  char currfile[] = "D:\\Work\\Images\\barbclean.pgm";
   estorient2 est(currfile,w5x3);
   est.ofield.init_orient(1,8,8,0,0);
-  est.calc_energies(1,500);
+  est.calc_energies(1,400);
   est.quadtree_estimate();
   est.quadtree_flatten();
-  est.ofield.orientwrite("sideinf\\quadtree_out.dat");
+  est.ofield.orientwrite("sideinf\\quadtree.dat");
   return 0;
 }
 int yuvstreamprocess(int argc, _TCHAR* argv[])
@@ -100,17 +100,16 @@ int orienttest(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
-  char currfile[] = "D:\\Work\\Images\\bikecrop1024.pgm";
+  char currfile[] = "D:\\Work\\Images\\lighthouse.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
   dwtnode in(currfile,w5x3);
-  in.ofield.init_orient("sideinf\\quadtree_bikecrop10_34709.dat");
-  //in.ofield.init_orient(4,8,8,4,0);
+  in.ofield.init_orient("sideinf\\lighthouse_1244.dat");
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
-  bool halfres=false; // compute mses for half resolution instead
+  bool halfres=true; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=orient;
+  testmode mode=hpfprelift;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
@@ -140,6 +139,13 @@ int compresstest(int argc, _TCHAR* argv[])
       ref.interleave(true);
     }
     if (adapt) dout << " adaptive";
+    break;
+  case pyramid:
+    encode_ptr = &dwtnode::pyramid_encode;
+    dout << "Laplacian pyramid MSEs";
+    decode_ptr = &dwtnode::pyramid_decode;
+    if (halfres)
+      ref.lp2x3_halfres();
     break;
   case pyramid3x2:
     encode_ptr = &dwtnode::lp3x2_encode;
@@ -245,7 +251,7 @@ int compresstest(int argc, _TCHAR* argv[])
     if (imageout)
     {
       if (halfres)
-        ref.pgmwrite("tmp\\halfres.pgm");
+        ref.pgmwrite("results\\halfres.pgm");
       in.pgmwrite("tmp\\recon1.0.pgm");
       system("kdu_compress -i tmp\\recon0.1.pgm,tmp\\recon0.2.pgm,tmp\\recon0.4.pgm,"
         "tmp\\recon0.6.pgm,tmp\\recon0.8.pgm,tmp\\recon1.0.pgm"
