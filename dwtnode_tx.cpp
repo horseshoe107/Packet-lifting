@@ -274,22 +274,21 @@ void dwtnode::apply_HLlift(double a, direction dir)
 void dwtnode::apply_gain_factors(double k0, double k1, direction dir)
 {
   const int s = 1<<dwtlevel[dir];
-  const int t = 1<<operating_depth;
   if (dir == vertical)
     for (int y=0;y<h;y+=s)
       if (y%(2*s)==0) //L row
-        for (int x=0;x<w;x+=t)
+        for (int x=0;x<w;x++)
           pixels[y*w+x] *= k0;
       else //H row
-        for (int x=0;x<w;x+=t)
+        for (int x=0;x<w;x++)
           pixels[y*w+x] *= k1;
   else // horizontal
     for (int x=0;x<w;x+=s)
       if (x%(2*s)==0) //L col
-        for (int y=0;y<h;y+=t)
+        for (int y=0;y<h;y++)
           pixels[y*w+x] *= k0;
       else //H col
-        for (int y=0;y<h;y+=t)
+        for (int y=0;y<h;y++)
           pixels[y*w+x] *= k1;
   return;
 }

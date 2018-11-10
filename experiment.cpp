@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "base.h"
 #include "dwtnode.h"
+extern double splines[];
+extern int splines_extent;
 double mse(dwtnode &a, dwtnode &b)
 {
   if ((a.h>>a.dwtlevel[vertical]!=b.h>>b.dwtlevel[vertical])
@@ -54,15 +56,14 @@ void orientationfield::orient_csvout()
 // direction to the entire image
 void dwtnode::shift(int sigma)
 {
-  const int N = (k->veclen-1)/2; // centre of the shift kernel
   int z, sker;
   bool ksig;
   double *pixdest = new double[h*w];
   for (int y=0;y<h;y++)
     for (int x=0;x<w;x++)
     { // if LUT acts on subband coefficients, modify kernel selection
-      kernel_selection(x,sigma,z,sker,ksig);
-      pixdest[y*w+x] = filt(&k->lut[sker],y*w+x,-z,N,horizontal,ksig);
+      kernel_selection(x,sigma,horizontal,z,sker,ksig);
+      pixdest[y*w+x] = filt(splines+sker,y*w+x,-z,splines_extent,horizontal,ksig);
     }
   delete[] pixels;
   pixels = pixdest;
@@ -77,8 +78,7 @@ void dwtnode::halveimage(bool doit)
   }
 }
 // wrappers for analysis-encode-decode-synthesis experimentation
-void dwtnode::rawl_encode(shker &shftbase, shker &shftpoly2,
-  shker &shftpoly4, bool halfres, bool adapt)
+void dwtnode::rawl_encode(bool halfres, bool adapt)
 {
   if (halfres)
   {
@@ -88,16 +88,14 @@ void dwtnode::rawl_encode(shker &shftbase, shker &shftpoly2,
   else rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::rawl_decode(char *bitrate, shker &shftbase,
-  shker &shftpoly2, shker &shftpoly4, bool adapt)
+void dwtnode::rawl_decode(char *bitrate, bool adapt)
 {
   string fname = "tmp\\out";
   fname += bitrate;
   fname += ".rawl";
   rawlread((char *)fname.c_str());
 }
-void dwtnode::antialias_encode(shker &shftbase,
-  shker &shftpoly2, shker &shftpoly4, bool halfres, bool adapt)
+void dwtnode::antialias_encode(bool halfres, bool adapt)
 {
   analysis(both);
   extract_subband(0);
@@ -120,8 +118,7 @@ void dwtnode::antialias_encode(shker &shftbase,
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::antialias_decode(char *bitrate,
-  shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool adapt)
+void dwtnode::antialias_decode(char *bitrate, bool adapt)
 {
   string fname = "tmp\\out";
   fname += bitrate;
@@ -142,35 +139,34 @@ void dwtnode::antialias_decode(char *bitrate,
   synthesis(both);
   return;
 }
-void dwtnode::orient_encode(shker &shftbase,
-  shker &shftpoly2, shker &shftpoly4, bool out, bool adapt)
+void dwtnode::orient_encode(bool out, bool adapt)
 {
-  oriented_packet_analysis(shftbase,shftpoly4);
+  oriented_packet_analysis(both);
   if (out)
   {
-    oriented_synthesis(shftpoly2,shftpoly4);
-    pgmwrite("tmp\\or_LL1.pgm");
-    oriented_analysis(shftpoly2,shftpoly4);
+		extract_subband(0);
+		subbands[0]->oriented_synthesis(both);
+    subbands[0]->pgmwrite("tmp\\or_LL1.pgm");
+		delete subbands[0];
+		subbands[0] = NULL;
   }
   packet_synthesis(both);
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::orient_decode(char *bitrate,
-  shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool adapt)
+void dwtnode::orient_decode(char *bitrate, bool adapt)
 {
   string fname = "tmp\\out";
   fname += bitrate;
   fname += ".rawl";
   rawlread((char *)fname.c_str(),h,w);
   packet_analysis(both);
-  oriented_packet_synthesis(shftbase,shftpoly4);
+  oriented_packet_synthesis(both);
   return;
 }
-void dwtnode::aa_orient_encode(shker &shftbase,
-  shker &shftpoly2, shker &shftpoly4, bool out, bool adapt)
+void dwtnode::aa_orient_encode(bool out, bool adapt)
 {
-  oriented_packet_analysis(shftbase,shftpoly4);
+  oriented_packet_analysis(both);
   extract_subband(0);
   extract_subband(1);
   extract_subband(2);
@@ -182,9 +178,9 @@ void dwtnode::aa_orient_encode(shker &shftbase,
     subbands[1]->synthesis(horizontal);
     subbands[2]->synthesis(vertical);
     interleave();
-    oriented_synthesis(shftpoly2,shftpoly4);
+    oriented_synthesis(both);
     pgmwrite("tmp\\aaor_LL1.pgm");
-    oriented_analysis(shftpoly2,shftpoly4);
+    oriented_analysis(both);
     extract_subband(0);
     extract_subband(1);
     extract_subband(2);
@@ -198,8 +194,7 @@ void dwtnode::aa_orient_encode(shker &shftbase,
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::aa_orient_decode(char *bitrate,
-  shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool adapt)
+void dwtnode::aa_orient_decode(char *bitrate, bool adapt)
 {
   string fname = "tmp\\out";
   fname += bitrate;
@@ -215,28 +210,27 @@ void dwtnode::aa_orient_decode(char *bitrate,
   subbands[1]->synthesis(horizontal);
   subbands[2]->synthesis(vertical);
   interleave();
-  oriented_packet_synthesis(shftbase,shftpoly4);
+  oriented_packet_synthesis(both);
   return;
 }
-void dwtnode::orient2_encode
-  (shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool out, bool est)
+void dwtnode::orient2_encode(bool out, bool est)
 {
   //Legacy code chunk; this implementation reconstructs LL1
   //without access to LH1 and HL1. Substantial artifacts appear
   //due to this imperfection
-  oriented_packet_analysis(shftbase,shftpoly4);
+  oriented_packet_analysis(both);
   extract_subband(0);
   subbands[0]->ofield.inherit(this->ofield);
   if (out)
   {
-    subbands[0]->oriented_synthesis(shftbase,shftpoly2);
+    subbands[0]->oriented_synthesis(both);
     subbands[0]->pgmwrite("tmp\\or2_LL1.pgm");
-    subbands[0]->oriented_analysis(shftbase,shftpoly2);
+    subbands[0]->oriented_analysis(both);
   }
   // only valid when the field is inherited
   // the other approach is to do an oriented synthesis back to LL1,
   // then packet synthesis down using a new orientation field
-  subbands[0]->oriented_analysis(shftpoly2,shftpoly4);
+  subbands[0]->oriented_analysis(both);
   subbands[0]->synthesis(both); // synthesise back up to LL1
   interleave();
   packet_synthesis(both);
@@ -268,8 +262,7 @@ void dwtnode::orient2_encode
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::orient2_decode
-  (char *fname, shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool est)
+void dwtnode::orient2_decode(char *fname, bool est)
 {
   rawlread(fname,h,w);
   //Legacy code chunk
@@ -277,9 +270,9 @@ void dwtnode::orient2_decode
   extract_subband(0);
   subbands[0]->ofield.inherit(this->ofield);
   subbands[0]->analysis(both);
-  subbands[0]->oriented_synthesis(shftpoly2,shftpoly4);
+  subbands[0]->oriented_synthesis(both);
   interleave();
-  oriented_packet_synthesis(shftbase,shftpoly4);
+  oriented_packet_synthesis(both);
   //analysis(both);
   //extract_subband(0);
   //if (est)
@@ -299,10 +292,9 @@ void dwtnode::orient2_decode
   //oriented_packet_synthesis(shftbase,shftpoly4);
   return;
 }
-void dwtnode::aa_orient2_encode(shker &shftbase, shker &shftpoly2,
-  shker &shftpoly4, packlift_filters &filts, bool out, bool est)
+void dwtnode::aa_orient2_encode(packlift_filters &filts, bool out, bool est)
 {
-  oriented_packet_analysis(shftbase,shftpoly4);
+  oriented_packet_analysis(both);
   //this->operating_depth = 1; // only write to LL1 pixels
   //oriented_synthesis(shftpoly2,shftpoly4);
   //analysis(both);
@@ -319,7 +311,7 @@ void dwtnode::aa_orient2_encode(shker &shftbase, shker &shftpoly2,
   {
     estorient cpy(subbands[0]);
     cpy.init_orient(4,8,16);
-    cpy.calc_energies(shftbase);
+    cpy.calc_energies();
     cpy.choose_orient();
     cpy.ofield.orientwrite("tmp\\LLaaorient.dat");
     cpy.ofield.orient_csvout();
@@ -330,15 +322,14 @@ void dwtnode::aa_orient2_encode(shker &shftbase, shker &shftpoly2,
   subbands[0]->synthesis(both);
   if (out)
     subbands[0]->pgmwrite("tmp\\aaor2_LL.pgm");
-  subbands[0]->oriented_packet_analysis(shftbase,shftpoly4);
+  subbands[0]->oriented_packet_analysis(both);
   subbands[0]->synthesis(both);
   interleave();
   packet_synthesis(both);
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::aa_orient2_decode(char *fname, shker &shftbase,
-  shker &shftpoly2, shker &shftpoly4, packlift_filters &filts, bool est)
+void dwtnode::aa_orient2_decode(char *fname, packlift_filters &filts, bool est)
 {
   rawlread(fname,h,w);
   analysis(both);
@@ -348,9 +339,9 @@ void dwtnode::aa_orient2_decode(char *fname, shker &shftbase,
   else // interpolate shift field
     subbands[0]->ofield.inherit(this->ofield);
   subbands[0]->packet_analysis(both);
-  subbands[0]->oriented_packet_synthesis(shftbase,shftpoly4);
+  subbands[0]->oriented_packet_synthesis(both);
   interleave();
-  oriented_analysis(shftpoly2,shftpoly4);
+  oriented_analysis(both);
   extract_subband(0); // undo packet lifting
   extract_subband(1);
   extract_subband(2);
@@ -360,6 +351,6 @@ void dwtnode::aa_orient2_decode(char *fname, shker &shftbase,
   subbands[1]->synthesis(horizontal);
   subbands[2]->synthesis(vertical);
   interleave();
-  oriented_packet_synthesis(shftbase,shftpoly4);
+  oriented_packet_synthesis(both);
   return;
 }

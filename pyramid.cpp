@@ -56,8 +56,7 @@ void dwtnode::lp3x2_halfres()
   this->h>>=1;
   this->w>>=1;
 }
-void dwtnode::lp3x2_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres, bool adapt)
+void dwtnode::lp3x2_encode(bool halfres, bool adapt)
 {
   dwtbase = disabled;
   this->subbands[0] = new dwtnode(h/2,w/2,disabled,true);
@@ -73,8 +72,7 @@ void dwtnode::lp3x2_encode(shker &shftbase,
   }
   return;
 }
-void dwtnode::lp3x2_decode(char *bitrate, shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool adapt)
+void dwtnode::lp3x2_decode(char *bitrate, bool adapt)
 {
   dwtbase = disabled;
   string c_fname = "tmp\\coarse";
@@ -100,8 +98,7 @@ void dwtnode::lp2x3_halfres()
   this->h>>=1;
   this->w>>=1;
 }
-void dwtnode::lp2x3_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres, bool adapt)
+void dwtnode::lp2x3_encode(bool halfres, bool adapt)
 {
   dwtbase = disabled;
   this->subbands[0] = new dwtnode(h/2,w/2,disabled,true);
@@ -116,8 +113,7 @@ void dwtnode::lp2x3_encode(shker &shftbase,
   }
   return;
 }
-void dwtnode::lp2x3_decode(char *bitrate, shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool adapt)
+void dwtnode::lp2x3_decode(char *bitrate, bool adapt)
 {
   dwtbase = disabled;
   string c_fname = "tmp\\coarse";

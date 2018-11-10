@@ -3,8 +3,8 @@
 int antialiasing(int argc, _TCHAR* argv[])
 {
   packlift_filters filts("sideinf\\icip_aa_filters.dat");
-  char currfile[] = "C:\\Data\\Images\\barbara.pgm";
-  //char currfile[] = "C:\\Data\\Images\\nonstandard\\nyquist_horz_gen.pgm";
+  char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+  //char currfile[] = "D:\\Work\\Images\\nonstandard\\nyquist_horz_gen.pgm";
   dwtnode in(currfile,w9x7);
   in.analysis(both);
   in.extract_subband(0);
@@ -31,15 +31,12 @@ int antialiasing(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,aaorient};
-  shker shft1("sideinf\\baseker.dat"); // create shift lut objects
-  shker shft2("sideinf\\v2poly.dat");
-  shker shft4("sideinf\\v4packnormalised.dat");
-  char currfile[] = "C:\\Data\\Images\\city0.pgm";
+  char currfile[] = "D:\\Work\\Images\\city0.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
   if (false){ // orientation estimation flow
     estorient est(currfile,w9x7);
     est.init_orient(4,8,16);
-    est.calc_energies(shft1);
+    est.calc_energies();
     //est.legacy_choose_orient();
     est.choose_orient();
     est.ofield.orientwrite("sideinf\\tmp.dat");
@@ -56,8 +53,8 @@ int compresstest(int argc, _TCHAR* argv[])
   testmode mode=orient;
   std::stringstream batch; // set batch file and resolution arguments
   batch << (halfres?"halfres.bat":"out.bat")<<" "<<ref.geth()<<" "<<ref.getw();
-  void (dwtnode::*encode_ptr)(shker &,shker &,shker &,bool,bool) = NULL;
-  void (dwtnode::*decode_ptr)(char *,shker &, shker &, shker &, bool) = NULL;
+  void (dwtnode::*encode_ptr)(bool,bool) = NULL;
+  void (dwtnode::*decode_ptr)(char *, bool) = NULL;
   switch (mode)
   {
   case base:
@@ -135,7 +132,7 @@ int compresstest(int argc, _TCHAR* argv[])
     {
       dout << " half resolution";
       decode_ptr = &dwtnode::rawl_decode;
-      ref.oriented_analysis(shft1,shft2);
+      ref.oriented_analysis(both);
       cerr << "not yet implemented!";
       exit(1);
     }
@@ -157,29 +154,29 @@ int compresstest(int argc, _TCHAR* argv[])
     break;
   }
   {
-    (in.*encode_ptr)(shft1,shft2,shft4,halfres,adapt);
+    (in.*encode_ptr)(halfres,adapt);
     system(batch.str().c_str());
     in.halveimage(halfres);
     //// test perfect reconstruction
-    (in.*decode_ptr)("",shft1,shft2,shft4,adapt);
+    (in.*decode_ptr)("",adapt);
     cout << mse(ref,in) << endl;
     //'(' << 10*log10(255^2/mse) << ')'; // output psnr instead
-    (in.*decode_ptr)("0.1",shft1,shft2,shft4,adapt);
+    (in.*decode_ptr)("0.1",adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.1.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.2",shft1,shft2,shft4,adapt);
+    (in.*decode_ptr)("0.2",adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.2.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.4",shft1,shft2,shft4,adapt);
+    (in.*decode_ptr)("0.4",adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.4.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.6",shft1,shft2,shft4,adapt);
+    (in.*decode_ptr)("0.6",adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.6.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.8",shft1,shft2,shft4,adapt);
+    (in.*decode_ptr)("0.8",adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.8.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("1.0",shft1,shft2,shft4,adapt);
+    (in.*decode_ptr)("1.0",adapt);
     if (imageout)
     {
       if (halfres)
@@ -196,28 +193,19 @@ int compresstest(int argc, _TCHAR* argv[])
 }
 int hpftest(int argc, _TCHAR* argv[])
 {
-  shker shft1("sideinf\\baseker.dat"); // create shift lut objects
-  shker shft2("sideinf\\v2poly.dat");
-  //char currfile[] = "C:\\Data\\Images\\nonstandard\\vert_generated.pgm";
-  //char currfile[] = "C:\\Data\\Images\\barbara.pgm";
-  char currfile[] = "C:\\Data\\Images\\nonstandard\\vert_generated.pgm";
+  //char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+  char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
   dwtnode in(currfile,w5x3);
   //in.ofield.init_orient("sideinf\\barb4.dat");
-  //in.ofield.init_orient(4,8,8);
   in.ofield.init_orient(4,8,8,4,0);
   in.ofield.setaffinefield();
 
-  //in.transpose();
-  //in.analysis(vertical);
-  //in.hpf_oriented_analysis(shft2,horizontal);
-  //in.transpose();
-  //in.pgmwrite("");
-
   //in.analysis(both);
-  //in.oriented_analysis(shft1,shft2);
-  in.hpf_oriented_analysis(shft1,shft2);
+  in.oriented_analysis(both);
+	//in.synthesis(both);
 
-  in.pgmwrite("temp.pgm");
+	in.pgmwrite("base.pgm");
+
   return 0;
 }
 int _tmain(int argc, _TCHAR* argv[])

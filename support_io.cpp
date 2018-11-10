@@ -70,24 +70,6 @@ packlift_filters::packlift_filters(char *fname)
   offset >>= 1;
   //offset = -1; // set this to emulate old results
 }
-// read shift kernel lookup table from an external file
-shker::shker(char *fname)
-{
-  int lutsize;
-  ifstream filtin(fname);
-  if (!filtin.good())
-  {
-    cerr << "Access of file " << fname << " unsuccessful." << endl;
-    exit(1);
-  }
-  filtin >> veclen >> lutsize >> p;
-  lut = new double[lutsize];
-  for (int n=0;n<lutsize;n++)
-    filtin >> lut[n];
-  inband = (p!=1);
-  int numvecs = lutsize/veclen/p/p;
-  lutprec = (numvecs-1)*2;
-}
 // Initialise the orientation field with preset shifts. This
 // should be called prior to orientation estimation.
 void orientationfield::init_orient

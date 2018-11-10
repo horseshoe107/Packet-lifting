@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "base.h"
 #include "dwtnode.h"
+extern double splines[];
+extern int splines_extent;
 estorient::estorient(dwtnode *target):dwtnode(target->h,target->w,target->dwtbase)
 {
   dwtlevel[vertical]=target->dwtlevel[vertical];
@@ -49,15 +51,8 @@ void estorient::transpose()
 }
 // NB: modify this later for robustness to images with nonstandard
 // image dimensions (ie, where h%blksz!=0 or w%blksz!=0)
-void estorient::calc_energies(shker &shftbase)
+void estorient::calc_energies()
 {
-  switchkernel(shftbase);
-  if (k->inband)
-  {
-    cerr << "Use baseband shift kernels for orientation estimation" << endl;
-    exit(1);
-  }
-  const int N = (k->veclen-1)/2;
   int z, sker; // shift expressed in whole pixels, and fractional (via shift kernel LUT)
   bool ksig;   // flag indicating positive or negative shift
   for (int n=0;n<ofield.numblks;n++)
@@ -75,24 +70,24 @@ void estorient::calc_energies(shker &shftbase)
         {
           tmpV = tmpH = pixels[y*w+x];
           // calculate the vertical high-pass energy
-          kernel_selection(x,sigma,z,sker,ksig);
+          kernel_selection(x,sigma,vertical,z,sker,ksig);
           if (y==0) // top edge must be replicated
-            tmpV -= filt(&k->lut[sker],(y+1)*w+x,-z,N,horizontal,ksig);
+            tmpV -= filt(splines+sker,(y+1)*w+x,-z,splines_extent,horizontal,ksig);
           else if (y==h-1) // bottom edge must be replicated
-            tmpV -= filt(&k->lut[sker],(y-1)*w+x,z,N,horizontal,!ksig);
+            tmpV -= filt(splines+sker,(y-1)*w+x,z,splines_extent,horizontal,!ksig);
           else
-            tmpV -= 0.5*(filt(&k->lut[sker],(y-1)*w+x,z,N,horizontal,!ksig)
-                       +filt(&k->lut[sker],(y+1)*w+x,-z,N,horizontal,ksig) );
+            tmpV -= 0.5*(filt(splines+sker,(y-1)*w+x,z,splines_extent,horizontal,!ksig)
+                       +filt(splines+sker,(y+1)*w+x,-z,splines_extent,horizontal,ksig) );
           accVenergy += tmpV*tmpV; // accumulate for all pixels in the block
           // calc horizontal high-pass energy
-          kernel_selection(y,sigma,z,sker,ksig);
+          kernel_selection(y,sigma,horizontal,z,sker,ksig);
           if (x==0) // top edge must be replicated
-            tmpH -= filt(&k->lut[sker],y*w+x+1,-z,N,vertical,ksig);
+            tmpH -= filt(splines+sker,y*w+x+1,-z,splines_extent,vertical,ksig);
           else if (x==w-1) // bottom edge must be replicated
-            tmpH -= filt(&k->lut[sker],y*w+x-1,z,N,vertical,!ksig);
+            tmpH -= filt(splines+sker,y*w+x-1,z,splines_extent,vertical,!ksig);
           else
-            tmpH -= 0.5*(filt(&k->lut[sker],y*w+x-1,z,N,vertical,!ksig)
-                       +filt(&k->lut[sker],y*w+x+1,-z,N,vertical,ksig) );
+            tmpH -= 0.5*(filt(splines+sker,y*w+x-1,z,splines_extent,vertical,!ksig)
+                       +filt(splines+sker,y*w+x+1,-z,splines_extent,vertical,ksig) );
           accHenergy += tmpH*tmpH; // accumulate for all pixels in the block
         }
       orientenergy.vJ[n][sigma+ofield.maxshift] = accVenergy;

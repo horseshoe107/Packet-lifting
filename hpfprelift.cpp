@@ -14,12 +14,8 @@ static double g1_coeffs[] = {-0.25, -0.5, 1.5, -0.5, -0.25};
 #define G1_EXTENT 2
 static double hpf_coeffs[] = {-2,0,4,3,-5,-19,38,-19,-5,3,4,0,-2}; // divide by 64 later
 #define HPF_EXTENT 6
-static double spline_lut[] = {0, 0, 0, 1, 0, 0, 0,
--0.0057314933, 0.0213902240,-0.0798294029, 0.9674625206, 0.1198302579,-0.0315853847, 0.0084632783,
--0.0088233996, 0.0329293754,-0.1228941022, 0.8796881878, 0.2687588056,-0.0678352739, 0.0181764069,
--0.0097770136, 0.0364883116,-0.1361762329, 0.7514540266, 0.4325511590,-0.1018238761, 0.0272836254,
--0.0090991941, 0.0339586548,-0.1267354249, 0.5973263672, 0.5973263672,-0.1267354249, 0.0339586548};
-#define SPLINE_EXTENT 3
+extern double splines[];
+extern int splines_extent;
 #define LUT_SIZE 5
 #define INBAND_EXTENT 8 // sets the limit on length of the inband filters
 static const int hpf_h0_extent = H0_EXTENT+HPF_EXTENT;
@@ -67,8 +63,8 @@ hpfprelift_init::hpfprelift_init()
   const int g1_hpf_h0_extent = hpf_h0_extent + G1_EXTENT;
   double *g0_hpf_h0 = convolve(hpf_h0_filter, hpf_h0_extent, g0_filter, G0_EXTENT);
   double *g1_hpf_h0 = convolve(hpf_h0_filter, hpf_h0_extent, g1_filter, G1_EXTENT);
-  const int inband_L_extent = g0_hpf_h0_extent + SPLINE_EXTENT;
-  const int inband_H_extent = g1_hpf_h0_extent + SPLINE_EXTENT;
+  const int inband_L_extent = g0_hpf_h0_extent + splines_extent;
+  const int inband_H_extent = g1_hpf_h0_extent + splines_extent;
   double *inband_L;
   double *inband_H;
   const int veclength = 2*INBAND_EXTENT+1;
@@ -76,9 +72,9 @@ hpfprelift_init::hpfprelift_init()
   for (int i=0;i<LUT_SIZE;i++)
   {
     inband_L = convolve(g0_hpf_h0,g0_hpf_h0_extent,
-      spline_lut+SPLINE_EXTENT+i*(2*SPLINE_EXTENT+1),SPLINE_EXTENT);
+      splines+splines_extent+i*(2*splines_extent+1),splines_extent);
     inband_H = convolve(g1_hpf_h0,g1_hpf_h0_extent,
-      spline_lut+SPLINE_EXTENT+i*(2*SPLINE_EXTENT+1),SPLINE_EXTENT);
+      splines+splines_extent+i*(2*splines_extent+1),splines_extent);
     interleave_filters(inband_L,inband_L_extent,inband_H,inband_H_extent,
       hpf_inband_lut+INBAND_EXTENT+i*veclength,INBAND_EXTENT);
     interleave_filters(inband_H,inband_H_extent,inband_L,inband_L_extent,
@@ -101,6 +97,111 @@ void hpf_inband_lut_select(int sigma, int oprec, int &z, int &LUT_index, bool &d
   return;
 }
 // note, the LHlift step remains unchanged
+#define hpfexperiment
+#ifdef hpfexperiment
+void dwtnode::hpf_HLlift(double a, direction dir)
+{
+  if (dir==both)
+  {
+    cerr << "Only vertical or horizontal directions allowed" << endl;
+    exit(1);
+  }
+  if (dwtlevel[!dir] > ((dir==vertical)?0:1))
+  {
+    cerr << "hpf_HLlift cannot be used with this dwtlevel structure: vertical depth"
+		  << dwtlevel[vertical] << ", horizontal depth " << dwtlevel[horizontal] << endl;
+    exit(2);
+  }
+  const int s = 1<<dwtlevel[dir]; // stepsize
+  const int last = (dir==vertical)?((h-1)/s)*s : ((w-1)/s)*s;
+  const int N = (dir==vertical) ? splines_extent // centre of the shift kernel
+    : INBAND_EXTENT;
+  int sigma0, sigma1; // total shift in 1/oprec units
+  int z0, z1, lut0, lut1;
+  bool ksig0, ksig1;  // flag indicating positive or negative shift
+  double *tempbuff = new double[(w>>dwtlevel[horizontal]) + 2*hpf_h0_extent];
+  if (dir == vertical)
+    for (int y=0;y<h;y+=2*s) // lifting to the L rows
+    {
+      // apply shift first, write output to temporary buffer
+      for (int x=0;x<w;x++)
+      { // NB: When y==0, the retrieve function might not return a
+        // meaningful value. However, in this case sigma0 is not used
+        sigma0 = ofield.retrieve(y-1,x,vertical);
+        sigma1 = ofield.retrieve(y,x,vertical);
+        for (int n=1;n<s;n++)
+        { // accumulate relative shifts of subsequent row pairs
+          sigma0 += ofield.retrieve(y-1-n,x+divround(sigma0,ofield.oprec),vertical);
+          sigma1 += ofield.retrieve(y+n,x+divround(-sigma1,ofield.oprec),vertical);
+        }
+        if ((sigma0==0)&&(sigma1==0)) // adaptivity check
+          continue;
+        kernel_selection(x,-sigma0,dir,z0,lut0,ksig0);
+        kernel_selection(x,sigma1,dir,z1,lut1,ksig1);
+        if (y==0) // top edge must be replicated
+          tempbuff[(x>>dwtlevel[horizontal])+hpf_h0_extent] = 2*a*
+              filt(splines+lut1,(y+s)*w+x,-z1,N,horizontal,ksig1);
+        else if (y==last) // replicate bottom edge
+          tempbuff[(x>>dwtlevel[horizontal])+hpf_h0_extent] = 2*a*
+              filt(splines+lut0,(y-s)*w+x,-z0,N,horizontal,ksig0);
+        else
+          tempbuff[(x>>dwtlevel[horizontal])+hpf_h0_extent] = a*
+            ( filt(splines+lut0,(y-s)*w+x,-z0,N,horizontal,ksig0)
+            + filt(splines+lut1,(y+s)*w+x,-z1,N,horizontal,ksig1));
+      }
+      // constant boundary extension
+      for (int x=0;x<hpf_h0_extent;x++)
+      {
+        tempbuff[x] = tempbuff[hpf_h0_extent];
+        tempbuff[(w>>dwtlevel[horizontal])+hpf_h0_extent+x]
+          = tempbuff[(w>>dwtlevel[horizontal])+hpf_h0_extent-1];
+      }
+      for (int xsub=0;xsub<(w>>dwtlevel[horizontal]);xsub+=2)
+      { // find low-pass projection in the baseband by calculating
+        // intermediate even (low-pass) samples
+        double v = 0;
+        // apply bandpass + low-pass analysis composite filter
+        for (int n=-hpf_h0_extent;n<=hpf_h0_extent;n++)
+          v += tempbuff[xsub+hpf_h0_extent+n]*hpf_h0_filter[-n];
+        // apply synthesis filter and write output to the low-pass row
+        for (int n=-G0_EXTENT;n<=G0_EXTENT;n++)
+        {
+          int x = (xsub+n) << dwtlevel[horizontal];
+          if ((x>=0)&&(x<w))
+            pixels[y*w+x] += v*g0_filter[n];
+        }
+      }
+    }
+  else // horizontal
+    for (int x=0;x<w;x+=2*s) // lifting to the L cols
+      for (int y=0;y<h;y+=2) // only lifting to the L (orthogonal) rows as well!
+      {
+        sigma0 = ofield.retrieve(y,x-1,horizontal);
+        sigma1 = ofield.retrieve(y,x,horizontal);
+        for (int n=1;n<s;n++)
+        { // accumulate relative shifts of subsequent col pairs
+          sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
+          sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
+        }
+        if ((sigma0==0)&&(sigma1==0)) // adaptivity check
+          continue;
+        hpf_inband_lut_select(-sigma0,ofield.oprec,z0,lut0,ksig0);
+        hpf_inband_lut_select(sigma1,ofield.oprec,z1,lut1,ksig1);
+        if (x==0) // replicate left edge
+          pixels[y*w+x] += 2*a*
+              filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1,true);
+        else if (x==last) // replicate right edge
+          pixels[y*w+x] += 2*a*
+              filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0,true);
+        else
+          pixels[y*w+x] += a*
+            ( filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0,true)
+            + filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1,true));
+      }
+  delete [] tempbuff;
+  return;
+}
+#else
 void dwtnode::hpf_HLlift(double a, direction dir)
 {
   if (k==NULL)
@@ -113,8 +214,8 @@ void dwtnode::hpf_HLlift(double a, direction dir)
     cerr << "Only vertical or horizontal directions allowed" << endl;
     exit(2);
   }
+	int operating_depth=0;
   const int s = 1<<dwtlevel[dir]; // stepsize
-  const int t = 1<<operating_depth;
   const int last = (dir==vertical)?((h-1)/s)*s : ((w-1)/s)*s;
   const int N = (dir==vertical) ? (k->veclen-1)/2 // centre of the shift kernel
     : INBAND_EXTENT;
@@ -126,7 +227,7 @@ void dwtnode::hpf_HLlift(double a, direction dir)
     for (int y=0;y<h;y+=2*s) // lifting to the L rows
     {
       // apply shift first, write output to temporary buffer
-      for (int x=0;x<w;x+=t)
+      for (int x=0;x<w;x++)
       { // NB: When y==0, the retrieve function might not return a
         // meaningful value. However, in this case sigma0 is not used
         sigma0 = ofield.retrieve(y-1,x,vertical);
@@ -176,7 +277,7 @@ void dwtnode::hpf_HLlift(double a, direction dir)
     }
   else // horizontal
     for (int x=0;x<w;x+=2*s) // lifting to the L cols
-      for (int y=0;y<h;y+=2*t) // only lifting to the L (orthogonal) rows as well!
+      for (int y=0;y<h;y+=2) // only lifting to the L (orthogonal) rows as well!
       {
         sigma0 = ofield.retrieve(y,x-1,horizontal);
         sigma1 = ofield.retrieve(y,x,horizontal);
@@ -203,9 +304,14 @@ void dwtnode::hpf_HLlift(double a, direction dir)
   delete [] tempbuff;
   return;
 }
-void dwtnode::hpf_oriented_analysis(shker &shftkern, direction dir)
+#endif
+void dwtnode::hpf_oriented_analysis(direction dir)
 {
-  switchkernel(shftkern);
+	if (dir==both)
+	{
+		hpf_oriented_analysis(vertical);
+		hpf_oriented_analysis(horizontal);
+	}
   switch (dwtbase)
   {
   case w5x3:
@@ -229,15 +335,13 @@ void dwtnode::hpf_oriented_analysis(shker &shftkern, direction dir)
   dwtlevel[dir]++;
   return;
 }
-void dwtnode::hpf_oriented_analysis(shker &shftbase, shker &shftpoly2)
+void dwtnode::hpf_oriented_synthesis(direction dir)
 {
-  hpf_oriented_analysis(shftbase, vertical);
-  hpf_oriented_analysis(shftpoly2, horizontal);
-  return;
-}
-void dwtnode::hpf_oriented_synthesis(shker &shftkern, direction dir)
-{
-  switchkernel(shftkern);
+	if (dir==both)
+	{
+		hpf_oriented_synthesis(horizontal);
+		hpf_oriented_synthesis(vertical);
+	}
   dwtlevel[dir]--;
   switch (dwtbase)
   {
@@ -252,9 +356,4 @@ void dwtnode::hpf_oriented_synthesis(shker &shftkern, direction dir)
     cerr << "No wavelet kernels other than 5x3 permitted" << endl;
     exit(2);
   }
-}
-void dwtnode::hpf_oriented_synthesis(shker &shftbase, shker &shftpoly2)
-{
-  hpf_oriented_synthesis(shftpoly2, horizontal);
-  hpf_oriented_synthesis(shftbase, vertical);
 }

@@ -5,7 +5,7 @@
 dwtnode::dwtnode(int hset, int wset, dwttype type, bool initzero)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
-  dwtbase=type, k=NULL, packf=NULL, operating_depth=0;
+  dwtbase=type, packf=NULL;
   h=hset; w=wset;
   pixels = new double[h*w];
   for (int n=0;n<4;n++)
@@ -18,7 +18,7 @@ dwtnode::dwtnode(int hset, int wset, dwttype type, bool initzero)
 dwtnode::dwtnode(char *fname, dwttype type)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
-  dwtbase=type, pixels=NULL, k=NULL, packf=NULL, operating_depth=0;
+  dwtbase=type, pixels=NULL, packf=NULL;
   if (strcmp(fname+strlen(fname)-4,".pgm") == 0)
     pgmread(fname);
   else
@@ -32,7 +32,7 @@ dwtnode::dwtnode(char *fname, dwttype type)
 dwtnode::dwtnode(char *fname, int hset, int wset, dwttype type, int expi)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
-  dwtbase=type, pixels=NULL, k=NULL, packf=NULL, operating_depth=0;
+  dwtbase=type, pixels=NULL, packf=NULL;
   if (strcmp(fname+strlen(fname)-5,".rawl") == 0)
     rawlread(fname,hset,wset,expi);
   else
@@ -49,14 +49,12 @@ void dwtnode::copy(dwtnode &target)
   this->w=target.w;
   dwtlevel[vertical]=target.dwtlevel[vertical];
   dwtlevel[horizontal]=target.dwtlevel[horizontal];
-  operating_depth=target.operating_depth;
   dwtbase=target.dwtbase;
   if (pixels!=NULL)
     delete [] pixels;
   pixels = new double[h*w];
   for (int n=0;n<h*w;n++)
     pixels[n]=target.pixels[n];
-  this->k=target.k;
   this->packf=target.packf;
   this->ofield.copy(target.ofield);
 }

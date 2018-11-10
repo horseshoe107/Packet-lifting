@@ -14,20 +14,6 @@ public:
   int htN, hcN, hpN, offset;
   double *ht_coeff, *hc_coeff, *hp_coeff;
 };
-class shker
-{
-public:
-  // constructor defined in support_io.cpp
-  shker(char *fname);
-  ~shker() {if (lut!=NULL) delete[] lut;}
-// data members
-  int veclen;
-  int lutprec;
-  int skip; // overprecision multiple: lutprec/oprec
-  bool inband; // true when LUT operates on subbands
-  int p; // subband periodicity when inband==true
-  double *lut;
-};
 class orientationfield
 {
   friend class dwtnode;
@@ -127,15 +113,11 @@ public:
   void upsample_lift(bool analysis);
   void downsample_lift(bool analysis);
   void lp3x2_halfres();
-  void lp3x2_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres, bool adapt);
-  void lp3x2_decode(char *bitrate, shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool adapt);
+  void lp3x2_encode(bool halfres, bool adapt);
+  void lp3x2_decode(char *bitrate, bool adapt);
   void lp2x3_halfres();
-  void lp2x3_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres, bool adapt);
-  void lp2x3_decode(char *bitrate, shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool adapt);
+  void lp2x3_encode(bool halfres, bool adapt);
+  void lp2x3_decode(char *bitrate, bool adapt);
   // antialiasing transform (defined in antialias_tx.cpp)
   friend void packet_transfer(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
@@ -154,51 +136,34 @@ public:
   friend double alphaTlookup(dwtnode &hE, dwtnode &donorE, int y, int x, direction);
   void packlift(direction dim, bool analysis, bool adaptive=false);
   // oriented transform functions (defined in orient_tx.cpp)
-  void switchkernel(shker&);
-  void kernel_selection(int n, int sigma, int &intshift,
+	void kernel_selection(int n, int sigma, direction, int &intshift,
                         int &LUT_index, bool &shiftdirection);
   void apply_oriented_LHlift(double, direction);
   void apply_oriented_HLlift(double, direction);
-  void oriented_analysis(shker&, direction);
-  void oriented_synthesis(shker&, direction);
-  void oriented_analysis(shker &shftbase, shker &shftpoly2);
-  void oriented_synthesis(shker &shftbase, shker &shftpoly2);
-  void oriented_packet_analysis(shker &shftbase, shker &shftpoly4);
-  void oriented_packet_synthesis(shker &shftbase, shker &shftpoly4);
+	void oriented_analysis(direction);
+	void oriented_synthesis(direction);
+	void oriented_packet_analysis(direction);
+	void oriented_packet_synthesis(direction);
   // defined in hpfprelift.cpp
   void hpf_HLlift(double a, direction dir);
-  void hpf_oriented_analysis(shker &shftkern, direction dir);
-  void hpf_oriented_analysis(shker &shftbase, shker &shftpoly2);
-  void hpf_oriented_synthesis(shker &shftkern, direction dir);
-  void hpf_oriented_synthesis(shker &shftkern, shker &shftpoly2);
+  void hpf_oriented_analysis(direction);
+  void hpf_oriented_synthesis(direction);
   // experiment testing functions (defined in experiment.cpp)
   friend double mse(dwtnode &a, dwtnode &b);
   void shift(int sigma);
   void halveimage(bool);
-  void rawl_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres=false, bool adapt=false);
-  void antialias_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres=false, bool adapt=false);
-  void orient_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres=false, bool adapt=false);
-  void aa_orient_encode(shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool halfres=false, bool adapt=false);
-  void rawl_decode(char *bitrate,
-    shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool adapt=false);
-  void antialias_decode(char *bitrate,
-    shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool adapt=false);
-  void orient_decode(char *bitrate,
-    shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool adapt=false);
-  void aa_orient_decode(char *bitrate,
-    shker &shftbase, shker &shftpoly2, shker &shftpoly4, bool adapt=false);
-  void orient2_encode(shker &shftbase, shker &shftpoly2,
-    shker &shftpoly4, bool out=false, bool est=false);
-  void orient2_decode(char *bitrate, shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, bool est=false);
-  void aa_orient2_encode(shker &shftbase, shker &shftpoly2,
-    shker &shftpoly4, packlift_filters &filts, bool out=false, bool est=false);
-  void aa_orient2_decode(char *bitrate, shker &shftbase,
-    shker &shftpoly2, shker &shftpoly4, packlift_filters &filts, bool est=false);
+  void rawl_encode(bool halfres=false, bool adapt=false);
+  void antialias_encode(bool halfres=false, bool adapt=false);
+  void orient_encode(bool halfres=false, bool adapt=false);
+  void aa_orient_encode( bool halfres=false, bool adapt=false);
+  void rawl_decode(char *bitrate, bool adapt=false);
+  void antialias_decode(char *bitrate, bool adapt=false);
+  void orient_decode(char *bitrate, bool adapt=false);
+  void aa_orient_decode(char *bitrate, bool adapt=false);
+  void orient2_encode(bool out=false, bool est=false);
+  void orient2_decode(char *bitrate,  bool est=false);
+  void aa_orient2_encode(packlift_filters &filts, bool out=false, bool est=false);
+  void aa_orient2_decode(char *bitrate, packlift_filters &filts, bool est=false);
 // data members
   inline int geth(){return h;}
   inline int getw(){return w;}
@@ -214,13 +179,8 @@ protected:
   // dwtlevel[x] - only every 2^dwtlevel[x]th pixel is processed.
   // concurrent subsampling in the orthogonal direction is controlled
   // by operating_depth.
-  int operating_depth;
   enum dwttype dwtbase;
   double *pixels;
-  // pointer to the current shift filter. this will change repeatedly
-  // during runtime, as in general we need to switch between baseband
-  // and inband shift kernels.
-  shker *k;
   packlift_filters *packf;
 public:
   dwtnode *subbands[4]; // order of subbands: LL,HL,LH,HH
@@ -234,7 +194,7 @@ public:
   estorient(dwtnode *target);
   void init_orient(int setblksz, int setprec, int setmaxshift);
   void transpose();
-  void calc_energies(shker &shftbase);
+  void calc_energies();
   double fetch_residual(int orientblk, direction dir, char shift);
   bool test_residual(int orientblk, direction dir, char shift, double &best);
   void choose_shift(int orientblk, direction dir, double thresh);
