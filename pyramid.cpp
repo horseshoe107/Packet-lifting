@@ -79,12 +79,12 @@ void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
     rawl_decode(bitrate,halfres,adapt);
     return;
   }
-  string c_fname = "tmp\\coarse";
-  c_fname = c_fname + bitrate + ".rawl";
-  subbands[0]->rawlread((char *)c_fname.c_str());
   string d_fname = "tmp\\diff";
   d_fname = d_fname + bitrate + ".rawl";
   rawlread((char *)d_fname.c_str());
+  string c_fname = "tmp\\coarse";
+  c_fname = c_fname + bitrate + ".rawl";
+  this->subbands[0] = new dwtnode((char *)c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
   downsample_lift(false);
   upsample_lift(false);
   return;
@@ -125,12 +125,12 @@ void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
     rawl_decode(bitrate,halfres,adapt);
     return;
   }
-  string c_fname = "tmp\\coarse";
-  c_fname = c_fname + bitrate + ".rawl";
-  subbands[0]->rawlread((char *)c_fname.c_str());
   string d_fname = "tmp\\diff";
   d_fname = d_fname + bitrate + ".rawl";
   rawlread((char *)d_fname.c_str());
+  string c_fname = "tmp\\coarse";
+  c_fname = c_fname + bitrate + ".rawl";
+  this->subbands[0] = new dwtnode((char *)c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
   upsample_lift(false);
   downsample_lift(false);
   upsample_lift(false);
