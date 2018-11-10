@@ -113,7 +113,7 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
 {
   if (dir==both)
   {
-    cerr << "Only vertical or horizontal directions allowed" << endl;
+    cerr << "hpf_HLlift: only horizontal or vertical allowed" << endl;
     exit(1);
   }
   if (dwtlevel[!dir] != ((dir==vertical)?0:1))
@@ -234,7 +234,7 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
 {
   if (dir==both)
   {
-    cerr << "Only vertical or horizontal directions allowed" << endl;
+    cerr << "hpf_update_HLlift: only horizontal or vertical allowed" << endl;
     exit(1);
   }
   if (dwtlevel[!dir] != ((dir==vertical)?0:1))

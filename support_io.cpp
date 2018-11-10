@@ -14,7 +14,8 @@ void orientationfield::init_orient
   if (orientvec!=NULL)
     delete[] orientvec;
   orientvec = new orientation[numblks];
-  for (int n=0;n<numblks;n++) {
+  for (int n=0;n<numblks;n++)
+  {
     orientvec[n].hshift = defaulthorzshft;
     orientvec[n].vshift = defaultvertshft;
   }

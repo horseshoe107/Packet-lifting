@@ -436,7 +436,7 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
 { // error checking
   if (dir==both)
   {
-    cerr << "L-H lift; only horizontal or vertical allowed" << endl;
+    cerr << "apply_oriented_LHlift: only horizontal or vertical allowed" << endl;
     exit(1);
   }
   if (dwtlevel[!dir]>2)
@@ -500,7 +500,7 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
 {
   if (dir==both)
   {
-    cerr << "H-L lift; only horizontal or vertical allowed" << endl;
+    cerr << "apply_HLlift: only horizontal or vertical allowed" << endl;
     exit(1);
   }
   if (dwtlevel[!dir]>2)

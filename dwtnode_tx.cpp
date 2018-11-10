@@ -224,9 +224,8 @@ void dwtnode::apply_LHlift(double a, direction dir)
 {
   if (dir == both)
   {
-    apply_LHlift(a,vertical);
-    apply_LHlift(a,horizontal);
-    return;
+    cerr << "apply_LHlift: only horizontal or vertical allowed" << endl;
+    exit(1);
   }
   const int s = 1<<dwtlevel[dir]; // step size
   if (dir == vertical)
@@ -257,9 +256,8 @@ void dwtnode::apply_HLlift(double a, direction dir)
 {
   if (dir == both)
   {
-    apply_HLlift(a,vertical);
-    apply_HLlift(a,horizontal);
-    return;
+    cerr << "apply_HLlift: only horizontal or vertical allowed" << endl;
+    exit(1);
   }
   const int s = 1<<dwtlevel[dir];
   if (dir == vertical)

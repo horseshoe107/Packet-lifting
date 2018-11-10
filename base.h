@@ -29,5 +29,4 @@ inline int mod(int num, int den)
     a += den;
   return a;
 }
-double gamma(double a);
 double * convolve(double *, int, double *, int);

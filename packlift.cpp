@@ -87,6 +87,11 @@ packlift_filters::packlift_filters(char *fname)
 void packet_transfer(dwtnode &donor, dwtnode &receiver,
           bool analysis, direction dir)
 {
+  if (dir==both)
+  {
+    cerr << "packet_transfer: only horizontal or vertical allowed" << endl;
+    exit(1);
+  }
   int N = f.htN/2;
 	int Nleft = ((f.htN%2)==0)? N-1:N;
   int acc_shft = (dir==horizontal)?-f.offset:-f.offset*receiver.w;
@@ -122,6 +127,11 @@ void packet_transfer(dwtnode &donor, dwtnode &receiver,
 void packet_cancel(dwtnode &donor, dwtnode &receiver,
           bool analysis, direction dir)
 {
+  if (dir==both)
+  {
+    cerr << "packet_cancel: only horizontal or vertical allowed" << endl;
+    exit(1);
+  }
   int N = f.hcN/2;
   int don_shft = (dir==horizontal)?f.offset:f.offset*receiver.w;
   int B = (f.htN+f.hcN-2)/2;
@@ -203,6 +213,11 @@ double alphaTlookup(double hE,dwtnode &donorE,int y,int x,direction dir)
 void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
           bool analysis, direction dir)
 {
+  if (dir==both)
+  {
+    cerr << "packet_transfer_adaptive: only horizontal or vertical allowed" << endl;
+    exit(1);
+  }
   int N = f.htN/2;                   // For odd order filters the
 	int Nleft = ((f.htN%2)==0)? N-1:N; // left margin is shortened
   int acc_shft = (dir==horizontal)?-f.offset:-f.offset*receiver.w;
