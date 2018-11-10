@@ -129,14 +129,14 @@ public:
   // laplacian pyramid functions (defined in pyramid.cpp)
   void upsample_lift(bool analysis);
   void downsample_lift(bool analysis);
+  void pyramid_analysis();
+  void pyramid_synthesis();
   void pyramid_encode(bool halfres, bool adapt);
   void pyramid_decode(char *bitrate, bool halfres, bool adapt);
   void pyramid_encode(int depth=0, int layer=0, bool adapt=false);
   void pyramid_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
-  void lp3x2_halfres();
   void lp3x2_encode(bool halfres, bool adapt=false);
   void lp3x2_decode(char *bitrate, bool halfres, bool adapt=false);
-  void lp2x3_halfres();
   void lp2x3_encode(bool halfres, bool adapt=false);
   void lp2x3_decode(char *bitrate, bool halfres, bool adapt=false);
   // packet lifting functions (defined in packlift.cpp)
@@ -172,6 +172,7 @@ public:
   void shrink(int depth);
   void halveimage();
   void call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &fout);
+  void call_batch(testmode mode, char *Cdecomp, int depth, int layer, ofstream &fout);
   void rawl_encode(bool halfres=false, bool adapt=false);
   void rawl_encode(int depth=0, int layer=0, bool adapt=false);
   void rawl_decode(char *bitrate, bool halfres=false, bool adapt=false);

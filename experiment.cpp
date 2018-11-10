@@ -16,15 +16,21 @@ double mse(dwtnode &a, dwtnode &b)
     exit(1);
   }
   double apix, bpix, acc=0;
-  int aystep=1<<a.dwtlevel[vertical];
-  int axstep=1<<a.dwtlevel[horizontal];
-  int bystep=1<<b.dwtlevel[vertical];
-  int bxstep=1<<b.dwtlevel[horizontal];
+  int adepth=0,bdepth=0;
+  dwtnode *aptr, *bptr;
+  for (aptr=&a;aptr->subbands[0]!=nullptr;adepth++)
+    aptr = aptr->subbands[0];
+  for (bptr=&b;bptr->subbands[0]!=nullptr;bdepth++)
+    bptr = bptr->subbands[0];
+  int aystep=1<<(a.dwtlevel[vertical]-adepth);
+  int axstep=1<<(a.dwtlevel[horizontal]-adepth);
+  int bystep=1<<(b.dwtlevel[vertical]-bdepth);
+  int bxstep=1<<(b.dwtlevel[horizontal]-bdepth);
   for (int ay=0,by=0;ay<a.h;ay+=aystep,by+=bystep)
     for (int ax=0,bx=0;ax<a.w;ax+=axstep,bx+=bxstep)
     {
-      apix = a.pixels[ay*(a.w)+ax];
-      bpix = b.pixels[by*(b.w)+bx];
+      apix = aptr->pixels[ay*(a.w)+ax];
+      bpix = bptr->pixels[by*(b.w)+bx];
       apix = (apix<0)?0:(apix>255)?255:apix; // ensure data is
       bpix = (bpix<0)?0:(bpix>255)?255:bpix; // [0,255] bounded
       acc += (apix-bpix)*(apix-bpix);
@@ -99,8 +105,28 @@ void dwtnode::call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &f
       ; // skip the first level of Cdecomp
     Cdecomp++;
   }
-  else if ((mode==pyramid)||(mode==pyramid3x2)||(mode==pyramid2x3))
+  else if (mode==pyramid_test)
     batch << "pyramid.bat";
+  else
+    batch << "out.bat";
+  fout <<dwtmode_strings[txbase]<<" Cdecomp:"<< Cdecomp << endl;
+  batch <<" "<<h<<" "<<w<<" "<<txbase<<" \""<<Cdecomp<<"\"";
+  system(batch.str().c_str());
+}
+void dwtnode::call_batch(testmode mode, char *Cdecomp, int depth, int layer, ofstream &fout)
+{
+  char *dwtmode_strings[]={" w5x3"," w9x7"," no dwt"};
+  std::stringstream batch;
+  if (layer==1)
+  {
+    batch << "halfres.bat";
+    fout << " half resolution";
+    for (;(*Cdecomp!=',')&&(*Cdecomp!='\0');Cdecomp++)
+      ; // skip the first level of Cdecomp
+    Cdecomp++;
+  }
+  else if (mode==pyramid_test)
+    batch << "pyramid.bat"; // select based on layer and depth
   else
     batch << "out.bat";
   fout <<dwtmode_strings[txbase]<<" Cdecomp:"<< Cdecomp << endl;
@@ -138,6 +164,9 @@ void dwtnode::rawl_decode(char *bitrate, int depth, int layer, bool adapt)
   fname += bitrate;
   fname += ".rawl";
   rawlread((char *)fname.c_str());
+  dwtlevel[vertical]=dwtlevel[horizontal]=depth-layer;
+  for (int i=depth-1;i>=layer;i--)
+    synthesis(both);
 }
 void dwtnode::packlift_encode(bool halfres, bool adapt)
 {

@@ -40,6 +40,64 @@ void dwtnode::downsample_lift(bool analysis)
   delete[] tmp;
   return;
 }
+void dwtnode::pyramid_analysis()
+{
+  if (dwtlevel[vertical]!=dwtlevel[horizontal])
+  {
+    cerr << "Scalability both dimensions must be equal for pyramid transform" << endl;
+    exit(1);
+  }
+  dwtnode *curr = this;
+  for (int i=0;i<dwtlevel[0];i++)
+    curr = curr->subbands[0];
+  if (curr->subbands[0]!=nullptr)
+    delete subbands[0];
+  curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,txbase,true);
+  switch (txbase)
+  {
+  case pyramid:
+  case pyramid2x3:
+  case pyramid3x2:
+    curr->downsample_lift(true);
+    curr->upsample_lift(true);
+    if (txbase==pyramid3x2)
+      curr->downsample_lift(true);
+    break;
+  default:
+    cerr << "Transform is not a recognised pyramid transform!" << endl;
+    exit(1);
+  }
+  dwtlevel[0]++;
+  dwtlevel[1]++;
+  return;
+}
+void dwtnode::pyramid_synthesis()
+{
+  if (dwtlevel[vertical]!=dwtlevel[horizontal])
+  {
+    cerr << "Scalability both dimensions must be equal for pyramid transform" << endl;
+    exit(1);
+  }
+  dwtlevel[0]--;
+  dwtlevel[1]--;
+  dwtnode *curr = this;
+  for (int i=0;i<dwtlevel[0];i++)
+    curr = curr->subbands[0];
+  switch (txbase)
+  {
+  case pyramid2x3:
+    curr->upsample_lift(false);
+  case pyramid3x2:
+    curr->downsample_lift(false);
+  case pyramid:
+    curr->upsample_lift(false);
+    break;
+  default:
+    cerr << "Transform is not a recognised pyramid transform!" << endl;
+    exit(1);
+  }
+  return;
+}
 void dwtnode::pyramid_encode(bool halfres, bool adapt)
 {
   this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
@@ -69,10 +127,7 @@ void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
   dwtnode *curr = this;
   for (int i=0;i<depth;i++,curr=curr->subbands[0])
   {
-    if (curr->subbands[0]!=nullptr)
-      delete subbands[0];
-    curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,txbase,true);
-    curr->analysis(both);
+    curr->pyramid_analysis();
     string d_fname = "tmp\\diff";
     d_fname += i + ".rawl";
     if (i >= layer) // write out all layers needed to reconstruct
@@ -124,27 +179,15 @@ void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   curr->rawlread(c_fname.c_str());
+  dwtlevel[vertical]=dwtlevel[horizontal]=depth-layer;
   for (int i=depth-1;i>=layer;i--)
   {
-    curr=this;
-    for (int n=0;n<i;n++)
-      curr = curr->subbands[0];
-    curr->synthesis(both);
+    //curr=this;
+    //for (int n=0;n<i;n++)
+    //  curr = curr->subbands[0];
+    //curr->pyramid_synthesis();
+    pyramid_synthesis();
   }
-}
-void dwtnode::lp3x2_halfres()
-{
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
-  downsample_lift(true);
-  upsample_lift(true);
-  downsample_lift(true);
-  delete [] this->pixels;
-  pixels = subbands[0]->pixels;
-  subbands[0]->pixels = NULL;
-  delete subbands[0];
-  subbands[0] = NULL;
-  this->h=(h+1)/2;
-  this->w=(w+1)/2;
 }
 void dwtnode::lp3x2_encode(bool halfres, bool adapt)
 {
@@ -177,18 +220,6 @@ void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
   downsample_lift(false);
   upsample_lift(false);
   return;
-}
-void dwtnode::lp2x3_halfres()
-{
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
-  downsample_lift(true);
-  delete [] this->pixels;
-  pixels = subbands[0]->pixels;
-  subbands[0]->pixels = NULL;
-  delete subbands[0];
-  subbands[0] = NULL;
-  this->h=(h+1)/2;
-  this->w=(w+1)/2;
 }
 void dwtnode::lp2x3_encode(bool halfres, bool adapt)
 {

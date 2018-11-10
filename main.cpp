@@ -142,7 +142,7 @@ int compresstest(int argc, _TCHAR* argv[])
       exit(1);
     }
     for (int i=0;i<layer;i++)
-      ref.analysis(both);
+      ref.pyramid_analysis();
     break;}
   case packlift:{
     encode_ptr = &dwtnode::packlift_encode;
@@ -239,7 +239,6 @@ int compresstest(int argc, _TCHAR* argv[])
   {
     (in.*encode_ptr)(depth,layer,adapt);
     in.call_batch(mode,Cdecomp,halfres,dout); // run kdu_compress
-    //if (halfres) in.halveimage();
     in.shrink(layer); // reduce dimensions if layer>0
     //// test perfect reconstruction
     (in.*decode_ptr)("",depth,layer,adapt);
