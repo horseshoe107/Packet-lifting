@@ -136,6 +136,8 @@ void dwtnode::hpf_HLlift(double a, direction dir)
           sigma0 += ofield.retrieve(y-1-n,x+divround(sigma0,ofield.oprec),vertical);
           sigma1 += ofield.retrieve(y+n,x+divround(-sigma1,ofield.oprec),vertical);
         }
+        if ((sigma0==0)&&(sigma1==0)) // adaptivity check
+          continue;
         kernel_selection(x,-sigma0,z0,lut0,ksig0);
         kernel_selection(x,sigma1,z1,lut1,ksig1);
         if (y==0) // top edge must be replicated
@@ -183,6 +185,8 @@ void dwtnode::hpf_HLlift(double a, direction dir)
           sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
           sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
         }
+        if ((sigma0==0)&&(sigma1==0)) // adaptivity check
+          continue;
         hpf_inband_lut_select(-sigma0,ofield.oprec,z0,lut0,ksig0);
         hpf_inband_lut_select(sigma1,ofield.oprec,z1,lut1,ksig1);
         if (x==0) // replicate left edge
