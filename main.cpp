@@ -83,9 +83,9 @@ int compresstest(int argc, _TCHAR* argv[])
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
-  bool halfres=true; // compute mses for half resolution instead
+  bool halfres=false; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=hpfprelift;
+  testmode mode=orient;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
@@ -281,6 +281,13 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
       ref.hpf_oriented_analysis(both,adapt);
     }
     break;
+  case hpfprelift2:
+    encode_ptr = &dwtnode::hpfprelift2_encode;
+    dout << "2 level HPF prelift MSEs";
+    decode_ptr = &dwtnode::hpfprelift2_decode;
+    if (halfres)
+      ref.hpf_oriented_analysis(both,adapt);
+    break;
   default:
     cerr << "This test mode is unsupported" << endl;
     exit(1);
@@ -333,12 +340,8 @@ int hpftest(int argc, _TCHAR* argv[])
   //in.ofield.init_orient(4,8,8,4,0);
   in.ofield.setaffinefield();
 
-	in.hpf_oriented_analysis(vertical,true);
-  //in.oriented_analysis(vertical);
-  in.hpf_oriented_analysis(horizontal,true);
-  //in.oriented_analysis(horizontal);
+	in.hpf_oriented_analysis(both,true);
 	in.pgmwrite("test.pgm");
-
   return 0;
 }
 int _tmain(int argc, _TCHAR* argv[])

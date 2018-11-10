@@ -294,3 +294,37 @@ void dwtnode::hpfprelift_decode(char *bitrate, bool halfres, bool adapt)
   }
 	return;
 }
+void dwtnode::hpfprelift2_encode(bool halfres, bool adapt)
+{
+  hpf_oriented_analysis(both,adapt);
+  extract_subband(0); // ofield automatically inherited
+  //subbands[0]->hpf_oriented_analysis(both,adapt);
+  subbands[0]->oriented_analysis(both);
+  subbands[0]->synthesis(both);
+  if (halfres)
+  {
+    subbands[0]->rawlwrite("tmp\\out.rawl");
+    return;
+  }
+  interleave();
+  synthesis(both);
+  rawlwrite("tmp\\out.rawl");
+  return;
+}
+void dwtnode::hpfprelift2_decode(char *bitrate, bool halfres, bool adapt)
+{
+  rawl_decode(bitrate,halfres,adapt);
+  analysis(both);
+  if (halfres)
+  {
+    hpf_oriented_synthesis(both,adapt);
+    return;
+  }
+  extract_subband(0);
+  subbands[0]->analysis(both);
+  //subbands[0]->hpf_oriented_synthesis(both,adapt);
+  subbands[0]->oriented_synthesis(both);
+  interleave();
+  hpf_oriented_synthesis(both,adapt);
+  return;
+}

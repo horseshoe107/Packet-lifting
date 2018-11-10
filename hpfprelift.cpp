@@ -33,11 +33,11 @@ double *initialise_hpf()
   return filtcentre;
 }
 //interleave using the even-indexed samples from f0 and odd-indexed samples from f1.
-//f0 and f1 should point to the centre of the filter, where the extent of the filters
-//are k0 and k1 respectively.
-//the interleaved result has an extent of n. if k0<n or k1<n then the end coefficients
-//will be trimmed, and both polyphase components will be adjusted to maintain dc gain
-//of 0
+//f0 and f1 should point to the centre of the filter, where the length of the filters
+//are 2*k0+1 and 2*k1+2 respectively.
+//the interleaved result is limited to length 2n+1. if k0<n or k1<n then the end
+//coefficients will be trimmed, and both polyphase components will be adjusted to
+//maintain dc gain of 0
 void interleave_filters(double *f0, int k0, double *f1, int k1,
                         double *dest, int n)
 {
@@ -100,14 +100,24 @@ void hpf_inband_lut_select(int sigma, int oprec, int &z, int &LUT_index, bool &d
     LUT_index += lut_size*veclength;
   return;
 }
-double prelift_adaptivity_lookup(double v0_n, double v1_n)
+double prelift_adaptivity_lookup(double sum, double diff)
 {
-  double sum = v0_n + v1_n;
-  double diff = abs(v0_n - v1_n);
-  // when v0 and v1 are independent random variables, the ratio of diff/sum
-  // seems to be ~0.4
-  return (diff<0.4*sum)?1.0:0.0;
-  //return 1.0; // switch off adaptivity
+  // calculated a std deviation of 0.4099 in logspace
+  //1/exp(0.4099) = 0.6637
+  //1/exp(4/3*0.4099) = 0.579
+  //1/exp(5/3*0.4099) = 0.505
+  //1/exp(2*0.4099) = 0.4405
+  if (diff > 0.6637*sum)
+    return 0.0;
+  if (diff > 0.4405*sum)
+    return 0.5;
+  //if (diff > 0.579*sum)
+  //  return 0.25;
+  //if (diff > 0.505*sum)
+  //  return 0.5;
+  //if (diff > 0.4405*sum)
+  //  return 0.75;
+  return 1.0;
 }
 void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
 {
@@ -132,7 +142,7 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
   if (dir == vertical)
 	{ // temporary row arrays for holding post-warping data
 		dwtnode tmp0(1,w,this->dwtbase), tmp1(1,w,this->dwtbase);
-		dwtnode v0((h+2*s-1)/(2*s),(w+1)/2,dwtbase,true), v1=v0;
+		dwtnode sum((h+2*s-1)/(2*s),(w+1)/2,dwtbase,true), diff=sum;
     for (int y=0;y<h;y+=2*s) // lifting to the L rows
     { // apply warping first, write output to temporary buffers
       for (int x=0;x<w;x++)
@@ -160,8 +170,10 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
       for (int xsub=0;xsub<w;xsub+=2)
       { // find horizontal low-pass aliasing component by applying
         // highpass + low-pass analysis composite filter
-        v0.pixels[(y/s/2)*v0.w+xsub/2] = tmp0.filt(hpf_h0_filter,xsub,0,hpf_h0_extent,horizontal);
-        v1.pixels[(y/s/2)*v1.w+xsub/2] = tmp1.filt(hpf_h0_filter,xsub,0,hpf_h0_extent,horizontal);
+        double v0 = tmp0.filt(hpf_h0_filter,xsub,0,hpf_h0_extent,horizontal);
+        double v1 = tmp1.filt(hpf_h0_filter,xsub,0,hpf_h0_extent,horizontal);
+        sum.pixels[(y/s/2)*sum.w+xsub/2] = v0+v1;
+        diff.pixels[(y/s/2)*diff.w+xsub/2] = v0-v1;
       }
 		}
 		for (int y=0;y<h;y+=2*s)
@@ -170,11 +182,11 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
         // doesn't have aliasing, so we skip the hpf_prelift step
         if (ofield.retrieve(y,xsub,!dir)==0)
         { // filter v0 and v1 appropriately
-          double v0_n = v0.filt3x3abs(y/s/2,xsub/2);
-				  double v1_n = v1.filt3x3abs(y/s/2,xsub/2);
-          double b = v0.pixels[y/s/2*v0.w+xsub/2] + v1.pixels[y/s/2*v1.w+xsub/2];
+          double sum_n = sum.filt3x3abs(y/s/2,xsub/2);
+				  double diff_n = diff.filt3x3abs(y/s/2,xsub/2);
+          double b = sum.pixels[y/s/2*sum.w+xsub/2];
           if (adapt)
-            b *= prelift_adaptivity_lookup(v0_n,v1_n);
+            b *= prelift_adaptivity_lookup(sum_n,diff_n);
           for (n=-G0_EXTENT;n<=G0_EXTENT;n++) // input-based filtering
           { // apply synthesis filter and write output to the low-pass row
             int x = xsub+n;
@@ -186,7 +198,7 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
 	}
   else // horizontal
   {
-    dwtnode v0((h+1)/2,(w+2*s-1)/(2*s),dwtbase,true), v1=v0;
+    dwtnode sum((h+1)/2,(w+2*s-1)/(2*s),dwtbase,true), diff=sum;
     for (int x=0;x<w;x+=2*s) // lifting to the L cols
       for (int y=0;y<h;y+=2) // only lifting to the L (orthogonal) rows as well!
       {
@@ -197,27 +209,28 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
         }
         hpf_inband_lut_select(-sigma0,ofield.oprec,z0,lut0,ksig0);
         hpf_inband_lut_select(sigma1,ofield.oprec,z1,lut1,ksig1);
+        double v0, v1;
         if (x==0) // replicate left edge
-          v0.pixels[(y/2)*v0.w+x/s/2]=v1.pixels[(y/2)*v1.w+x/s/2]
-              = a*filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1);
+          v0=v1= a*filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1);
         else if (x==last) // replicate right edge
-          v0.pixels[(y/2)*v0.w+x/s/2]=v1.pixels[(y/2)*v1.w+x/s/2]
-              = a*filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0);
+          v0=v1= a*filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0);
         else
         {
-          v0.pixels[(y/2)*v0.w+x/s/2] = a*filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0);
-          v1.pixels[(y/2)*v1.w+x/s/2] = a*filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1);
+          v0 = a*filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0);
+          v1 = a*filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1);
         }
+        sum.pixels[(y/2)*sum.w+x/s/2] = v0+v1;
+        diff.pixels[(y/2)*diff.w+x/s/2] = v0-v1;
       }
     for (int x=0;x<w;x+=2*s)
       for (int y=0;y<h;y+=2)
         if (ofield.retrieve(y,x,!dir)==0)
         { // filter v0 and v1
-          double v0_n = v0.filt3x3abs(y/2,x/s/2);
-				  double v1_n = v1.filt3x3abs(y/2,x/s/2);
-          double b = v0.pixels[y/2*v0.w+x/s/2] + v1.pixels[y/2*v1.w+x/s/2];
+          double sum_n = sum.filt3x3abs(y/2,x/s/2);
+				  double diff_n = diff.filt3x3abs(y/2,x/s/2);
+          double b = sum.pixels[y/2*sum.w+x/s/2];
           if (adapt)
-            b*= prelift_adaptivity_lookup(v0_n,v1_n);
+            b *= prelift_adaptivity_lookup(sum_n,diff_n);
           pixels[y*w+x] += b;
         }
   }
@@ -337,6 +350,7 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
           v1.pixels[(y/2)*v1.w+x/s/2] = a*filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1);
         }
       }
+    dwtlevel[horizontal]++; // temporarily increase the level for filt3x3abs
     for (int x=0;x<w;x+=2*s)
       for (int y=0;y<h;y+=2)
       {
@@ -345,7 +359,7 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
           double b0 = v0.pixels[y/2*v0.w+x/s/2];
           double b1 = v1.pixels[y/2*v1.w+x/s/2];
           if (adapt)
-          {
+          { // filt3x3abs will only access the odd columns (x=s,3s,5s,7s etc)
             double low0_filt = (x==0)? this->filt3x3abs(y,x+s):this->filt3x3abs(y,x-s);
             double low1_filt = ((x+s)>=w)? low0_filt : this->filt3x3abs(y,x+s);
             b0 *= update_adaptivity_lookup(b0, low0_filt);
@@ -354,6 +368,7 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
           pixels[y*w+x] += b0+b1;
         }
       }
+    dwtlevel[horizontal]--;
   }
   return;
 }

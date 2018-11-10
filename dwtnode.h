@@ -2,12 +2,11 @@ enum direction {vertical,horizontal,both};
 direction operator!(direction dir); // (defined in base.cpp)
 enum dwttype {w5x3, w9x7, disabled};
 enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,orient2packet,
-  orient2,packliftorient2,hpfprelift};
+  orient2,packliftorient2,hpfprelift,hpfprelift2};
 class orientationfield
 {
   friend class dwtnode;
   friend class estorient;
-  friend class est2orient;
 public:
   // constructor and io functions (defined in support_io.cpp)
   orientationfield(){h=0, w=0, blksz=0, numblks=0, oprec=0,
@@ -148,6 +147,8 @@ public:
   void packlift_orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void hpfprelift_encode(bool halfres=false, bool adapt=false);
   void hpfprelift_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void hpfprelift2_encode(bool halfres=false, bool adapt=false);
+  void hpfprelift2_decode(char *bitrate, bool halfres=false, bool adapt=false);
 // data members
 protected:
   int h,w; // height and width of the image
