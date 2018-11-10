@@ -210,10 +210,10 @@ void dwtnode::pgmwrite(char *fname)
 }
 // write 16-bit values out in little-endian format. pixel
 // values are prescaled up by 2^expi, with default expi=6
-void dwtnode::rawlwrite(char *fname, int expi)
+void dwtnode::rawlwrite(char *fname, int expi, bool allbands)
 {
-  const int verstep = 1<<dwtlevel[vertical];
-  const int horstep = 1<<dwtlevel[horizontal];
+  const int verstep = allbands ? 1 : 1<<dwtlevel[vertical];
+  const int horstep = allbands ? 1 : 1<<dwtlevel[horizontal];
   const int expf = 1<<expi; // expand by 2^6 = 64
   const int maxval = 1<<15;
   bool warning = false;

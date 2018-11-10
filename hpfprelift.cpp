@@ -187,14 +187,14 @@ void dwtnode::hpf_HLlift(double a, direction dir)
         hpf_inband_lut_select(sigma1,ofield.oprec,z1,lut1,ksig1);
         if (x==0) // replicate left edge
           pixels[y*w+x] += 2*a*
-              filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1);
+              filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1,true);
         else if (x==last) // replicate right edge
           pixels[y*w+x] += 2*a*
-              filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0);
+              filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0,true);
         else
           pixels[y*w+x] += a*
-            ( filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0)
-            + filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1));
+            ( filt(hpf_inband_lut+lut0,y*w+x-s,0,N,vertical,ksig0,true)
+            + filt(hpf_inband_lut+lut1,y*w+x+s,0,N,vertical,ksig1,true));
       }
   delete [] tempbuff;
   return;

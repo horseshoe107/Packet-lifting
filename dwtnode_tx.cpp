@@ -147,7 +147,6 @@ double dwtnode::filt(double *f, int n, int offset, int N, direction dir,
     cerr << "filt function only operates in one direction" << endl;
     exit(1);
   }
-  n += (dir==vertical)? offset*w : offset; // modify pixel location by the offset
   double *sig = pixels+n;
   int skip = (dir == vertical)?w:1;
   // evaluate the indices for the first and last pixels in the column/row
@@ -155,61 +154,49 @@ double dwtnode::filt(double *f, int n, int offset, int N, direction dir,
   int last_n  = inband ? // if inband, last sample must be low-pass
     (dir==vertical) ? first_n + ((h-1)/2)*2*w : first_n + ((w-1)/2)*2 :
     (dir==vertical) ? first_n + (h-1)*w : first_n + w-1;
-  double Lext = pixels[first_n];
+  double Lext = pixels[first_n]; // pixel values required for constant extension
   double Uext = pixels[last_n];
+  // calculate how many samples away from the edges of the image n is
   int Lbuf = (dir==vertical)?divfloor(n,w):mod(n,w);
   int Ubuf = (dir==vertical)?h-1 - divfloor(n,w):w-1 - mod(n,w);
-  int L=U=N; // boundaries of filter support
+  int L=N-offset, U=N+offset; // boundaries of filter support
+  int ext_s = inband ? 2:1; // step size when filtering over boundary edges
+  int Lmod = (inband && (((Lbuf+L)%2)!=0) ) ? L-1 : L;
+  int Umod = (inband && (((Lbuf+U)%2)!=0) ) ? U-1 : U;
   double out=0;
   if (forward) // normal filtering
   {
-    if (N > Lbuf) // extension of signal required
+    if (L > Lbuf) // extension of signal on left/top needed
     {
-      if (inband) // only extend the even samples
-        for (int i=-(N/2)*2;i<-Lbuf;i+=2)
-          out += Lext * f[-i];
-      else
-        for (int i=-N;i<-Lbuf;i++)
-          out += Lext * f[-i];
+      for (int i=-Lmod;i<-Lbuf;i+=ext_s)
+        out += Lext * f[-i+offset];
       L = Lbuf;
     }
-    if (N > Ubuf) // extension on right/bot needed
+    if (U > Ubuf) // extension on right/bot needed
     {
-      if (inband)
-        for (int i=(N/2)*2;i>Ubuf;i-=2)
-          out += Uext * f[-i];
-      else
-        for (int i=N;i>Ubuf;i--)
-          out += Uext * f[-i];
+      for (int i=Umod;i>Ubuf;i-=ext_s)
+        out += Uext * f[-i+offset];
       U = Ubuf;
     }
     for (int i=-L;i<=U;i++)
-      out += sig[i*skip]*f[-i];
+      out += sig[i*skip]*f[-i+offset];
   }
   else // reverse filter coefficients (apply negative shift)
   {
-    if (N > Lbuf) // extension of signal required
+    if (L > Lbuf) // extension of signal required
     {
-      if (inband) // only extend the even samples
-        for (int i=-(N/2)*2;i<-Lbuf;i+=2)
-          out += Lext * f[i];
-      else
-        for (int i=-N;i<-Lbuf;i++)
-          out += Lext * f[i];
+      for (int i=-Lmod;i<-Lbuf;i+=ext_s)
+        out += Lext * f[i-offset];
       L = Lbuf;
     }
-    if (N > Ubuf) // extension on right/bot needed
+    if (U > Ubuf) // extension on right/bot needed
     {
-      if (inband)
-        for (int i=(N/2)*2;i>Ubuf;i-=2)
-          out += Uext * f[i];
-      else
-        for (int i=N;i>Ubuf;i--)
-          out += Uext * f[i];
+      for (int i=Umod;i>Ubuf;i-=ext_s)
+        out += Uext * f[i-offset];
       U = Ubuf;
     }
     for (int i=-L;i<=U;i++)
-      out += sig[i*skip]*f[i];
+      out += sig[i*skip]*f[i-offset];
   }
   return out;
 }

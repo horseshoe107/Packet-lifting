@@ -108,7 +108,7 @@ public:
   void rawlread(char *fname, int expi=6);
   bool yuvstreamread(ifstream &yuvin);
   void pgmwrite(char *fname);
-  void rawlwrite(char *fname, int expi=6);
+  void rawlwrite(char *fname, int expi=6, bool allbands=false);
   void csvwrite(char *fname);
   void yuvstreamwrite(ofstream &yuvout);
   // support io functions (defined in support_io.cpp)
@@ -171,11 +171,11 @@ public:
   void oriented_packet_analysis(shker &shftbase, shker &shftpoly4);
   void oriented_packet_synthesis(shker &shftbase, shker &shftpoly4);
   // defined in hpfprelift.cpp
-  void dwtnode::hpf_HLlift(double a, direction dir);
-  void dwtnode::hpf_oriented_analysis(shker &shftkern, direction dir);
-  void dwtnode::hpf_oriented_analysis(shker &shftbase, shker &shftpoly2);
-  void dwtnode::hpf_oriented_synthesis(shker &shftkern, direction dir);
-  void dwtnode::hpf_oriented_synthesis(shker &shftkern, shker &shftpoly2);
+  void hpf_HLlift(double a, direction dir);
+  void hpf_oriented_analysis(shker &shftkern, direction dir);
+  void hpf_oriented_analysis(shker &shftbase, shker &shftpoly2);
+  void hpf_oriented_synthesis(shker &shftkern, direction dir);
+  void hpf_oriented_synthesis(shker &shftkern, shker &shftpoly2);
   // experiment testing functions (defined in experiment.cpp)
   friend double mse(dwtnode &a, dwtnode &b);
   void shift(int sigma);

@@ -235,24 +235,26 @@ int hpftest(int argc, _TCHAR* argv[])
 {
   shker shft1("sideinf\\baseker.dat"); // create shift lut objects
   shker shft2("sideinf\\v2poly.dat");
-  //char currfile[] = "C:\\Data\\Images\\nonstandard\\thin_vert.pgm";
+  char currfile[] = "C:\\Data\\Images\\nonstandard\\vert_generated.pgm";
   //char currfile[] = "C:\\Data\\Images\\barbara.pgm";
-  char currfile[] = "dctest.pgm";
+  //char currfile[] = "dctest.pgm";
   dwtnode in(currfile,w5x3);
   //in.ofield.init_orient("sideinf\\barb4.dat");
-  in.ofield.init_orient(4,8,8);
-  //in.ofield.init_orient(4,8,8,4,0);
+  //in.ofield.init_orient(4,8,8);
+  in.ofield.init_orient(4,8,8,4,0);
   in.ofield.setaffinefield();
 
   //in.transpose();
   //in.analysis(vertical);
   //in.hpf_oriented_analysis(shft2,horizontal);
   //in.transpose();
-  //in.pgmwrite("dchorz_LL1.pgm");
+  //in.pgmwrite("");
 
-  in.hpf_oriented_analysis(shft1,vertical);
-  in.analysis(horizontal);
-  in.pgmwrite("dcvert_slightmodify_LL1.pgm");
+  //in.analysis(both);
+  //in.oriented_analysis(shft1,shft2);
+  in.hpf_oriented_analysis(shft1,shft2);
+
+  in.rawlwrite("C:\\Program Files\\Matlab7\\work\\temp\\test_hpforient.rawl",6,true);
   return 0;
 }
 int _tmain(int argc, _TCHAR* argv[])
