@@ -54,6 +54,20 @@ void dwtnode::shift(int sigma, direction dir)
   pixels = pixdest;
   return;
 }
+// shrink h, w dimensions of image and orientation field
+void dwtnode::shrink(int depth)
+{
+  for (int i=0;i<depth;i++)
+  {
+    h = (h+1)/2;
+    w = (w+1)/2;
+  }
+  ofield.h=h;
+  ofield.w=w;
+  if (ofield.blksz%(1<<depth)!=0)
+    cerr << "Warning: orientation field is invalid" << endl;
+  ofield.blksz >>= depth;
+}
 void dwtnode::halveimage()
 {
   ofield.h=h=(h+1)/2;
@@ -104,7 +118,21 @@ void dwtnode::rawl_encode(bool halfres, bool adapt)
   else rawlwrite("tmp\\out.rawl");
   return;
 }
+void dwtnode::rawl_encode(int layer, bool adapt)
+{
+  for (int i=0;i<layer;i++)
+    analysis(both);
+  rawlwrite("tmp\\out.rawl");
+  return;
+}
 void dwtnode::rawl_decode(char *bitrate, bool halfres, bool adapt)
+{
+  string fname = "tmp\\out";
+  fname += bitrate;
+  fname += ".rawl";
+  rawlread((char *)fname.c_str());
+}
+void dwtnode::rawl_decode(char *bitrate, int layer, bool adapt)
 {
   string fname = "tmp\\out";
   fname += bitrate;
@@ -134,7 +162,7 @@ void dwtnode::packlift_encode(bool halfres, bool adapt)
   rawlwrite("tmp\\out.rawl");
   return;
 }
-//void dwtnode::packlift_encode(bool halfres, bool adapt)
+//void dwtnode::packlift_encode(int layer, bool adapt)
 //{
 //  packlift_analysis(both,adapt);
 //  if (!halfres)
@@ -161,7 +189,7 @@ void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
   synthesis(both);
   return;
 }
-//void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
+//void dwtnode::packlift_decode(char *bitrate, int layer, bool adapt)
 //{
 //  rawl_decode(bitrate,halfres,adapt);
 //  if (!halfres)

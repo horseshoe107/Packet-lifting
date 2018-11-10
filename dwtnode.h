@@ -131,6 +131,8 @@ public:
   void downsample_lift(bool analysis);
   void pyramid_encode(bool halfres, bool adapt);
   void pyramid_decode(char *bitrate, bool halfres, bool adapt);
+  void pyramid_encode(int layer=0, bool adapt=false);
+  void pyramid_decode(char *bitrate, int layer=0, bool adapt=false);
   void lp3x2_halfres();
   void lp3x2_encode(bool halfres, bool adapt);
   void lp3x2_decode(char *bitrate, bool halfres, bool adapt);
@@ -169,16 +171,23 @@ public:
   // experiment testing functions (defined in experiment.cpp)
   friend double mse(dwtnode &a, dwtnode &b);
   void shift(int sigma, direction);
+  void shrink(int depth);
   void halveimage();
   void call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &fout);
   void rawl_encode(bool halfres=false, bool adapt=false);
+  void rawl_encode(int layer=0, bool adapt=false);
   void rawl_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void rawl_decode(char *bitrate, int layer=0, bool adapt=false);
   void packlift_encode(bool halfres=false, bool adapt=false);
+  void packlift_encode(int layer=0, bool adapt=false);
   void packlift_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void packlift_decode(char *bitrate, int layer=0, bool adapt=false);
   void packlift_2layer_encode(bool halfres=false, bool adapt=false);
   void packlift_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient_encode(bool halfres=false, bool adapt=false);
+  void orient_encode(int layer=0, bool adapt=false);
   void orient_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void orient_decode(char *bitrate, int layer=0, bool adapt=false);
   void orient2_packet_encode(bool halfres=false, bool adapt=false);
   void orient2_packet_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient_2layer_encode(bool halfres=false, bool adapt=false);
@@ -186,7 +195,9 @@ public:
   void packlift_orient2_encode(bool halfres=false, bool adapt=false);
   void packlift_orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void hpfprelift_encode(bool halfres=false, bool adapt=false);
+  void hpfprelift_encode(int layer=0, bool adapt=false);
   void hpfprelift_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void hpfprelift_decode(char *bitrate, int layer=0, bool adapt=false);
   void hpfprelift_2layer_encode(bool halfres=false, bool adapt=false);
   void hpfprelift_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
 // data members

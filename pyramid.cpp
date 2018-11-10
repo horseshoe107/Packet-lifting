@@ -54,6 +54,10 @@ void dwtnode::pyramid_encode(bool halfres, bool adapt)
   }
   return;
 }
+void dwtnode::pyramid_encode(int layer, bool adapt)
+{
+
+}
 void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
 {
   if (halfres)
@@ -69,6 +73,10 @@ void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
   this->subbands[0] = new dwtnode((char *)c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
   upsample_lift(false);
   return;
+}
+void dwtnode::pyramid_decode(char *bitrate, int layer, bool adapt)
+{
+
 }
 void dwtnode::lp3x2_halfres()
 {

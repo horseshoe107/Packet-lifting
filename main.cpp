@@ -109,17 +109,21 @@ int compresstest(int argc, _TCHAR* argv[])
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
+  int layer=1; // compute mses for layer (0 is full resolution)
+  // TODO: overload all encode & decode functions with layer argument instead of halfres
   bool imageout=halfres; // dump out compressed, decoded images and collate
   testmode mode=packlift;
-  void (dwtnode::*encode_ptr)(bool, bool) = NULL;
-  void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
+  void (dwtnode::*encode_ptr)(int, bool) = NULL;
+  void (dwtnode::*decode_ptr)(char *, int, bool) = NULL;
+  //void (dwtnode::*encode_ptr)(bool, bool) = NULL;
+  //void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
   {
   case base:{
     encode_ptr = &dwtnode::rawl_encode;
     dout << "Ordinary dwt MSEs";
     decode_ptr = &dwtnode::rawl_decode;
-    if (halfres)
+    for (int i=0;i<layer;i++)
       ref.analysis(both);
     break;}
   case pyramid:{
@@ -246,7 +250,8 @@ int compresstest(int argc, _TCHAR* argv[])
   {
     (in.*encode_ptr)(halfres,adapt);
     in.call_batch(mode,Cdecomp,halfres,dout); // run kdu_compress
-    if (halfres) in.halveimage();
+    //if (halfres) in.halveimage();
+    in.shrink(layer); // reduce dimensions if layer>0
     //// test perfect reconstruction
     (in.*decode_ptr)("",halfres,adapt);
     cout << "testing perfect reconstruction: " << mse(ref,in) << endl;
