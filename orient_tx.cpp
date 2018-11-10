@@ -480,7 +480,6 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
-	const bool inband = dwtlevel[!dir]!=0;
   double *lut = (dwtlevel[!dir]==0)?splines:
     (dwtlevel[!dir]==1)?inbandker_lut:packetker_lut;
   const int last = (dir==vertical)?((h-1)/s)*s : ((w-1)/s)*s;
@@ -488,51 +487,46 @@ void dwtnode::apply_oriented_LHlift(double a, direction dir)
   const int N = (dwtlevel[!dir]==0)?splines_extent:
     (dwtlevel[!dir]==1)?inbandker_extent:packetker_extent;
   int sigma0, sigma1; // total shift in 1/oprec units
-  int z0, z1;         // shift in whole pixels (rounded to nearest integer)
-  int sker0, sker1;   // selectors used to access the shift kernel LUT
+  int z0, z1, lut0, lut1, n;
   bool ksig0, ksig1;  // flag indicating positive or negative shift
   if (dir == vertical)
     for (int y=s;y<h;y+=2*s) // iterating over the destination (H) rows
       for (int x=0;x<w;x++)
       { // find relative shift between (y-s,y) and (y,y+s) rows
-        sigma0 = ofield.retrieve(y-1,x,vertical);
-        sigma1 = ofield.retrieve(y,x,vertical);
-        for (int n=1;n<s;n++)
-        { // accumulate relative shifts (refer bk3p66)
+        for (sigma0=0, sigma1=0, n=0;n<s;n++)
+        { // accumulate relative shifts of subsequent row pairs
           sigma0 += ofield.retrieve(y-1-n,x+divround(sigma0,ofield.oprec),vertical);
           sigma1 += ofield.retrieve(y+n,x+divround(-sigma1,ofield.oprec),vertical);
         }
-        // determine which LUT filters will implement the shifts
-        kernel_selection(x,-sigma0,dir,z0,sker0,ksig0); // refer bk3p65
-        kernel_selection(x,sigma1,dir,z1,sker1,ksig1);
+        // break shifts down to integer shifts and LUT indices for filter selection
+        kernel_selection(x,-sigma0,dir,z0,lut0,ksig0); // refer bk3p65
+        kernel_selection(x,sigma1,dir,z1,lut1,ksig1);
         if (y==last) // bottom edge must be replicated
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband);
+              filt(lut+lut0,(y-s)*w+x,-z0,N,horizontal,ksig0);
         else // NB: filter in the orthogonal direction to the transform
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband)
-            + filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1,inband));
+            ( filt(lut+lut0,(y-s)*w+x,-z0,N,horizontal,ksig0)
+            + filt(lut+lut1,(y+s)*w+x,-z1,N,horizontal,ksig1));
       }
   else // horizontal
     for (int y=0;y<h;y++)
       for (int x=s;x<w;x+=2*s) // iterating over the destination (H) cols
       { // find relative shift between (x-s,x) and (x,x+s) cols
-        sigma0 = ofield.retrieve(y,x-1,horizontal);
-        sigma1 = ofield.retrieve(y,x,horizontal);
-        for (int n=1;n<s;n++)
-        { // accumulate relative shifts of subsequent col pairs
+        for (sigma0=0, sigma1=0, n=0;n<s;n++)
+        { // accumulate relative shifts of subsequent column pairs
           sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
           sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
         }
-        kernel_selection(y,-sigma0,dir,z0,sker0,ksig0); // choose LUT filters
-        kernel_selection(y,sigma1,dir,z1,sker1,ksig1);
+        kernel_selection(y,-sigma0,dir,z0,lut0,ksig0);
+        kernel_selection(y,sigma1,dir,z1,lut1,ksig1);
         if (x==last) // bottom edge must be replicated
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband);
+              filt(lut+lut0,y*w+x-s,-z0,N,vertical,ksig0);
         else
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband)
-            + filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1,inband));
+            ( filt(lut+lut0,y*w+x-s,-z0,N,vertical,ksig0)
+            + filt(lut+lut1,y*w+x+s,-z1,N,vertical,ksig1));
       }
   return;
 }
@@ -550,63 +544,58 @@ void dwtnode::apply_oriented_HLlift(double a, direction dir)
     exit(2);
   }
   const int s = 1<<dwtlevel[dir]; // stepsize
-	const bool inband = dwtlevel[!dir]!=0;
   double *lut = (dwtlevel[!dir]==0)?splines:
     (dwtlevel[!dir]==1)?inbandker_lut:packetker_lut;
   const int last = (dir==vertical)?((h-1)/s)*s : ((w-1)/s)*s;
   const int N = (dwtlevel[!dir]==0)?splines_extent:
     (dwtlevel[!dir]==1)?inbandker_extent:packetker_extent;
   int sigma0, sigma1; // total shift in 1/oprec units
-  int z0, z1, sker0, sker1;
+  int z0, z1, lut0, lut1, n;
   bool ksig0, ksig1;  // flag indicating positive or negative shift
   if (dir == vertical)
     for (int y=0;y<h;y+=2*s) // lifting to the L rows
       for (int x=0;x<w;x++)
       { // NB: When y==0, the retrieve function might not return a
         // meaningful value. However, in this case sigma0 is not used
-        sigma0 = ofield.retrieve(y-1,x,vertical);
-        sigma1 = ofield.retrieve(y,x,vertical);
-        for (int n=1;n<s;n++)
+        for (sigma0=0, sigma1=0, n=0;n<s;n++)
         { // accumulate relative shifts of subsequent row pairs
           sigma0 += ofield.retrieve(y-1-n,x+divround(sigma0,ofield.oprec),vertical);
           sigma1 += ofield.retrieve(y+n,x+divround(-sigma1,ofield.oprec),vertical);
         }
-        kernel_selection(x,-sigma0,dir,z0,sker0,ksig0);
-        kernel_selection(x,sigma1,dir,z1,sker1,ksig1);
+        kernel_selection(x,-sigma0,dir,z0,lut0,ksig0);
+        kernel_selection(x,sigma1,dir,z1,lut1,ksig1);
         if (y==0) // top edge must be replicated
           pixels[y*w+x] += 2*a*
-              filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1,inband);
+              filt(lut+lut1,(y+s)*w+x,-z1,N,horizontal,ksig1);
         else if (y==last) // replicate bottom edge
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband);
+              filt(lut+lut0,(y-s)*w+x,-z0,N,horizontal,ksig0);
         else
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,(y-s)*w+x,-z0,N,horizontal,ksig0,inband)
-            + filt(lut+sker1,(y+s)*w+x,-z1,N,horizontal,ksig1,inband));
+            ( filt(lut+lut0,(y-s)*w+x,-z0,N,horizontal,ksig0)
+            + filt(lut+lut1,(y+s)*w+x,-z1,N,horizontal,ksig1));
       }
   else // horizontal
     for (int y=0;y<h;y++)
       for (int x=0;x<w;x+=2*s) // lifting to the L cols
       {
-        sigma0 = ofield.retrieve(y,x-1,horizontal);
-        sigma1 = ofield.retrieve(y,x,horizontal);
-        for (int n=1;n<s;n++)
+        for (sigma0=0, sigma1=0, n=0;n<s;n++)
         { // accumulate relative shifts of subsequent col pairs
           sigma0 += ofield.retrieve(divround(y*ofield.oprec+sigma0,ofield.oprec),x-1-n,horizontal);
           sigma1 += ofield.retrieve(divround(y*ofield.oprec-sigma1,ofield.oprec),x+n,horizontal);
         }
-        kernel_selection(y,-sigma0,dir,z0,sker0,ksig0);
-        kernel_selection(y,sigma1,dir,z1,sker1,ksig1);
+        kernel_selection(y,-sigma0,dir,z0,lut0,ksig0);
+        kernel_selection(y,sigma1,dir,z1,lut1,ksig1);
         if (x==0) // replicate left edge
           pixels[y*w+x] += 2*a*
-              filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1,inband);
+              filt(lut+lut1,y*w+x+s,-z1,N,vertical,ksig1);
         else if (x==last) // replicate right edge
           pixels[y*w+x] += 2*a*
-              filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband);
+              filt(lut+lut0,y*w+x-s,-z0,N,vertical,ksig0);
         else
           pixels[y*w+x] += a*
-            ( filt(lut+sker0,y*w+x-s,-z0,N,vertical,ksig0,inband)
-            + filt(lut+sker1,y*w+x+s,-z1,N,vertical,ksig1,inband));
+            ( filt(lut+lut0,y*w+x-s,-z0,N,vertical,ksig0)
+            + filt(lut+lut1,y*w+x+s,-z1,N,vertical,ksig1));
       }
   return;
 }

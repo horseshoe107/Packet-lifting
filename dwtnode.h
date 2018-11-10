@@ -35,8 +35,6 @@ public:
   }
   int affine_retrieve(int y, int x, direction dir);
   void transpose();
-  // testing functions (defined in experiment.cpp)
-  void orient_csvout();
 private:
   int h,w; // note the h,w dimensions must be the same as those
            // of the dwtnode container
@@ -46,9 +44,9 @@ private:
   // This vector should have (N/blksz^2) elements, where N is the
   // number of elements in image, and blksz^2 is the size of an
   // "orientation block" - 1 pixel in the most precise case.
-  // The value at orientvec[n] refers to the relative shift estimated
-  // between pairs of rows belonging to orientation block n. For a
-  // block with blksz number of rows, the orientation applies to
+  // The value at orientvec[n].hshift refers to the relative shift
+  // estimated between pairs of rows belonging to orientation block n.
+  // For a block with blksz number of rows, the orientation applies to
   // rows pairs (0,1) through to (blksz-1,blksz). Note that (-1,0)
   // "belongs" to the previous orientation block
   struct orientation{char hshift; char vshift;} *orientvec;
@@ -84,8 +82,8 @@ public:
   void insert_subband(int band, bool suppress_warnings=false);
   void interleave(bool suppress_warnings=false);
   void transpose();
-  double filt(double *f, int pixelloc, int offset, int fN, direction,
-    bool forward, bool inband=false);
+  double filt(double *f, int pixelloc, int offset, int fN,
+    direction, bool forward=true);
   // ordinary transform functions (defined in dwtnode_tx.cpp)
   void apply_LHlift(double, direction);
   void apply_HLlift(double, direction);
@@ -155,11 +153,8 @@ protected:
   // on the image data. assignment/retrieval of dwtlevel should be
   // done through indexing dwtlevel[vertical] and dwtlevel[horizontal]
   // as appropriate.
-  int dwtlevel[2]; // depth of dwt analysis
-  // when performing a transform along dimension x, operations will
-  // apply to a subset of the pixels in dimension x as indicated by
-  // dwtlevel[x] - only every 2^dwtlevel[x]th pixel is processed.
-  enum dwttype dwtbase;
+  int dwtlevel[2];
+  enum dwttype dwtbase; // indicates the wavelet filters used, eg w5x3 or w9x7
   double *pixels;
 public:
   dwtnode *subbands[4]; // order of subbands: LL,HL,LH,HH
@@ -181,31 +176,4 @@ public:
   void legacy_choose_orient();  
 protected:
   struct tuple{double **hJ; double **vJ;} orientenergy;
-};
-class est2orient : public dwtnode
-{ // functions defined in orient_est2.cpp
-public:
-  est2orient(char* fname,dwttype type):dwtnode(fname,type){}
-  est2orient(char* fname,int hset,int wset,dwttype type):dwtnode(fname,hset,wset,type){}
-  ~est2orient()
-  {
-    if (edgeintensity != NULL)
-      delete[] edgeintensity;
-    if (edgeangle != NULL)
-      delete[] edgeangle;
-  }
-  void init_orient(int setblksz, int setprec, int setmaxshift);
-  void transpose();
-  void calc_raw_edges();
-  void calc_edge_blocks();
-  void edge_csvout();
-  double fetch_residual(int orientblk, direction dir, char shift);
-  double fetch_loss(int orientblk, direction dir, char shift);
-  bool test_loss(int orientblk, direction dir, char shift, double &best);
-  void set_shift(int n, bool forcedir=false, direction dir=vertical);
-  void choose_shift(int orientblk);
-  void choose_orient();
-protected:
-  double *edgeintensity, *edgeangle;
-  double *blk_intensity, *blk_angle;
 };

@@ -14,7 +14,7 @@ public:
   }
   int htN, hcN, hpN, offset;
   double *ht_coeff, *hc_coeff, *hp_coeff;
-} f("sideinf\\icip_aa_filters.dat");
+} f("filters\\icip_aa_filters.dat");
 // Initialise antialiasing filters from external file.
 // Note that although htN and hcN indicate the true filter length,
 // zero padding will occur if necessary to ensure the stored

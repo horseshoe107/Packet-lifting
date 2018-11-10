@@ -27,31 +27,6 @@ double mse(dwtnode &a, dwtnode &b)
     }
   return acc/(a.h>>a.dwtlevel[vertical])/(a.w>>a.dwtlevel[horizontal]);
 }
-void orientationfield::orient_csvout()
-{
-  const int fieldw = w/blksz;
-  ofstream fout("C:\\Program Files\\Matlab7\\work\\"
-    "oriented wavelets\\orient.csv",ios::binary);
-  fout << h << ',' << w << ',' << blksz << endl;
-  for (int n=0;n<numblks;n++)
-  {
-    fout << (int) orientvec[n].hshift;
-    if (n%fieldw == fieldw-1)
-      fout << endl;
-    else
-      fout << ',';
-  }
-  for (int n=0;n<numblks;n++)
-  {
-    fout << (int) orientvec[n].vshift;
-    if (n%fieldw == fieldw-1)
-      fout << endl;
-    else
-      fout << ',';
-  }
-  fout.close();
-  return;
-}
 // applies a constant shift of (sigma/lutprec) pixels in the horizontal
 // direction to the entire image
 void dwtnode::shift(int sigma)
@@ -304,7 +279,6 @@ void dwtnode::aa_orient2_encode(bool out, bool est)
     cpy.calc_energies();
     cpy.choose_orient();
     cpy.ofield.orientwrite("tmp\\LLaaorient.dat");
-    cpy.ofield.orient_csvout();
     subbands[0]->ofield.init_orient("tmp\\LLaaorient.dat");
   }
   subbands[0]->synthesis(both);
@@ -343,9 +317,18 @@ void dwtnode::aa_orient2_decode(char *fname, bool est)
 void dwtnode::hpfprelift_encode(bool halfres, bool adapt)
 {
 	hpf_oriented_analysis(both,adapt);
+	if (!halfres)
+		synthesis(both);
+	rawlwrite("tmp\\out.rawl");
 	return;
 }
 void dwtnode::hpfprelift_decode(char *bitrate, bool adapt)
 {
+  string fname = "tmp\\out";
+  fname += bitrate;
+  fname += ".rawl";
+  rawlread((char *)fname.c_str(),h,w);
+	analysis(both);
+	hpf_oriented_synthesis(both,adapt);
 	return;
 }

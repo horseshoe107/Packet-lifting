@@ -1,42 +1,15 @@
 #include "stdafx.h"
 #include "dwtnode.h"
-int antialiasing(int argc, _TCHAR* argv[])
-{
-  char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-  //char currfile[] = "D:\\Work\\Images\\nonstandard\\nyquist_horz_gen.pgm";
-  dwtnode in(currfile,w9x7);
-  in.analysis(both);
-  in.extract_subband(0);
-  in.extract_subband(1);
-  in.extract_subband(2);
-  in.subbands[0]->analysis(both);
-  in.subbands[1]->analysis(both);
-  in.subbands[2]->analysis(both);
-  in.packlift(both,true,true); // adaptive packet lifting
-  in.subbands[0]->synthesis(both);
-  in.subbands[0]->pgmwrite("adaptiveantialias.pgm");
-
-  //// reverse steps to check reconstruction
-  //in.packlift(both,false,true);
-  //in.subbands[0]->synthesis(both);
-  //in.subbands[1]->synthesis(both);
-  //in.subbands[2]->synthesis(both);
-  //in.interleave();
-  //in.synthesis(both);
-  //dwtnode comparison(currfile);
-  //cout << mse(in,comparison);
-  return 0;
-}
 int estimate(int argc, _TCHAR* argv[])
 {
-	char currfile[] = "D:\\Work\\Images\\city0.pgm";
-  estorient est(currfile,w9x7);
+	//char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+	char currfile[] = "D:\\Work\\Images\\nonstandard\\horz_generated.pgm";
+  estorient est(currfile,w5x3);
   est.init_orient(4,8,16);
   est.calc_energies();
   //est.legacy_choose_orient();
   est.choose_orient();
-  est.ofield.orientwrite("sideinf\\tmp.dat");
-  est.ofield.orient_csvout();
+  est.ofield.orientwrite("sideinf\\test.dat");
 	return 0;
 }
 int compresstest(int argc, _TCHAR* argv[])
@@ -54,7 +27,7 @@ int compresstest(int argc, _TCHAR* argv[])
   testmode mode=orient;
   std::stringstream batch; // set batch file and resolution arguments
   batch << (halfres?"halfres.bat":"out.bat")<<" "<<ref.geth()<<" "<<ref.getw();
-  void (dwtnode::*encode_ptr)(bool,bool) = NULL;
+  void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool) = NULL;
   switch (mode)
   {
@@ -201,16 +174,16 @@ int hpftest(int argc, _TCHAR* argv[])
   //in.ofield.init_orient(4,8,8,4,0);
   in.ofield.setaffinefield();
 
-	in.hpf_oriented_analysis(both,false);
+	in.hpf_oriented_analysis(vertical,true);
+	in.pgmwrite("vertexperiment.pgm");
 
   return 0;
 }
 int orienttest(int argc, _TCHAR* argv[])
 {
-	enum testmode {orient, recon1, recon2, recon3} mode = recon1;
+	enum testmode {orient, recon1, recon2, recon3} mode = orient;
   //char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-	//char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
-	char currfile[] = "D:\\Work\\Images\\nonstandard\\constant.pgm";
+	char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
   dwtnode in(currfile,w5x3);
   //in.ofield.init_orient("sideinf\\barb4.dat");
 	in.ofield.init_orient(4,8,8,4,0);
@@ -224,7 +197,6 @@ int orienttest(int argc, _TCHAR* argv[])
 	case recon1: // reconstruct w/ all subbands
 		in.oriented_packet_analysis(both);
 		in.oriented_synthesis(horizontal);
-		//in.oriented_synthesis(horizontal);
 		in.oriented_synthesis(vertical);
 		in.pgmwrite("LL1recon1.pgm");
 		break;
@@ -245,8 +217,8 @@ int _tmain(int argc, _TCHAR* argv[])
   //system("del sideinf\\alpha_cancel.dat");
   //system("del sideinf\\cancel_energy.dat");
   //compresstest(argc,argv);
-	orienttest(argc,argv);
-  //antialiasing(argc,argv);
+	//estimate(argc,argv);
   //hpftest(argc,argv);
+  orienttest(argc,argv);
   return 0;
 }

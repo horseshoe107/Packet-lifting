@@ -131,16 +131,23 @@ void dwtnode::transpose()
   swap(subbands[1],subbands[2]);
   return;
 }
-// Calculates the output of a filter with its support centred at pixel location
-// n+z (or n+z*w in the case of vertical filtering). z can be set to 0, and
-// is simply a convenience for implementing shift filters.
-// Filtering is applied vertically or horizontally as denoted by dir. The filter
-// must have have 2N+1 taps, where f points at the centre coefficient. For even
-// length filters, the array should be zero-padded to meet this restriction.
-// Boundary is handled by constant extension of the end pixels. For inband signals,
-// this is only done for the low-pass samples
-double dwtnode::filt(double *f, int n, int offset, int N, direction dir,
-                     bool forward, bool inband)
+// Calculates the output of the inner product of filter f and the image over the
+// support centred at x,y+offset for vertical filtering or x+offset,y for
+// horizontal filtering, where x and y are calculated from n = y*w + x
+// Direction of filtering is specified by dir.
+// The array holding the filter must have have 2N+1 taps, where f points to the
+// centre coefficient. Even length filters can be zero-padded to meet this restriction.
+// For normal operation of this function, the output is the inner product of ~f
+// (the time-reversal of the filter) with the image, eg:
+// out = sum_i sig[n+i]*f[-i]
+// If the boolean argument forward is set false then the filter is reversed:
+// out = sum_i sig[n+i]*f[i]
+// This has no effect when f is a zero phase filter, but may be useful for reversing
+// the direction of shift filters.
+// Pixel values beyond the boundary are extrapolated by constant extension. For
+// an image that is not in baseband (if dwtlevel[dir] != 0), the last lowpass
+// coefficient will be replicated, while the highpass coefficients will be set to 0.
+double dwtnode::filt(double *f, int n, int offset, int N, direction dir, bool forward)
 {
   if (dir == both)
   {
@@ -149,55 +156,35 @@ double dwtnode::filt(double *f, int n, int offset, int N, direction dir,
   }
   double *sig = pixels+n;
   int skip = (dir == vertical)?w:1;
-  // evaluate the indices for the first and last pixels in the column/row
-  int first_n = (dir==vertical) ? mod(n,w) : divfloor(n,w)*w;
-  int last_n  = inband ? // if inband, last sample must be low-pass
-    (dir==vertical) ? first_n + ((h-1)/2)*2*w : first_n + ((w-1)/2)*2 :
-    (dir==vertical) ? first_n + (h-1)*w : first_n + w-1;
+  int fsign = forward ? -1 : 1;
+  // evaluate the indices for the first and last low-pass pixels in the column/row
+  int first_n = (dir==vertical) ? n%w : (n/w)*w;
+  int last_n = (dir==vertical)?
+    first_n + (((h-1)>>dwtlevel[dir])<<dwtlevel[dir])*w
+    : first_n + (((w-1)>>dwtlevel[dir])<<dwtlevel[dir]);
   double Lext = pixels[first_n]; // pixel values required for constant extension
   double Uext = pixels[last_n];
-  // calculate how many samples away from the edges of the image n is
-  int Lbuf = (dir==vertical)?divfloor(n,w):mod(n,w);
-  int Ubuf = (dir==vertical)?h-1 - divfloor(n,w):w-1 - mod(n,w);
+  // calculate how far n is from the edge of the image (0 means n is already on the edge)
+  int Lbuf = (dir==vertical)? n/w : n%w; // also the index along the direction of filtering
+  int Ubuf = (dir==vertical)? h-1-n/w : w-1-n%w;
   int L=N-offset, U=N+offset; // boundaries of filter support
-  int ext_s = inband ? 2:1; // step size when filtering over boundary edges
-  int Lmod = (inband && (((Lbuf+L)%2)!=0) ) ? L-1 : L;
-  int Umod = (inband && (((Lbuf+U)%2)!=0) ) ? U-1 : U;
+  int s = 1<<dwtlevel[dir]; // step size when filtering over boundary edges
+  int Umod = ((((Lbuf+Ubuf+s-1)>>dwtlevel[dir])<<dwtlevel[dir]) - Lbuf);
   double out=0;
-  if (forward) // normal filtering
+  if (L > Lbuf) // extension of signal on left/top needed
   {
-    if (L > Lbuf) // extension of signal on left/top needed
-    {
-      for (int i=-Lmod;i<-Lbuf;i+=ext_s)
-        out += Lext * f[-i+offset];
-      L = Lbuf;
-    }
-    if (U > Ubuf) // extension on right/bot needed
-    {
-      for (int i=Umod;i>Ubuf;i-=ext_s)
-        out += Uext * f[-i+offset];
-      U = Ubuf;
-    }
-    for (int i=-L;i<=U;i++)
-      out += sig[i*skip]*f[-i+offset];
+    for (int i=-Lbuf-s;i>=-L;i-=s)
+      out += Lext * f[fsign*(i-offset)];
+    L = Lbuf;
   }
-  else // reverse filter coefficients (apply negative shift)
+  if (U > Ubuf) // extension on right/bot needed
   {
-    if (L > Lbuf) // extension of signal required
-    {
-      for (int i=-Lmod;i<-Lbuf;i+=ext_s)
-        out += Lext * f[i-offset];
-      L = Lbuf;
-    }
-    if (U > Ubuf) // extension on right/bot needed
-    {
-      for (int i=Umod;i>Ubuf;i-=ext_s)
-        out += Uext * f[i-offset];
-      U = Ubuf;
-    }
-    for (int i=-L;i<=U;i++)
-      out += sig[i*skip]*f[i-offset];
+    for (int i=Umod;i<=U;i+=s)
+      out += Uext * f[fsign*(i-offset)];
+    U = Ubuf;
   }
+  for (int i=-L;i<=U;i++)
+    out += sig[i*skip]*f[fsign*(i-offset)];
   return out;
 }
 void dwtnode::apply_LHlift(double a, direction dir)

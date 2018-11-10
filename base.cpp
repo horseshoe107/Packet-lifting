@@ -49,8 +49,6 @@ double * convolve(double *f1, int n1, double *f2, int n2)
     f[i]=0;
   for (int i=-n1;i<=n1;i++)
     for (int j=-n2;j<=n2;j++)
-    {
       f[i+j] += f1[i]*f2[j];
-    }
   return f;
 }

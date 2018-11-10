@@ -1,4 +1,3 @@
-// functions governing orientation estimation and interpolation
 #include "stdafx.h"
 #include "base.h"
 #include "dwtnode.h"
@@ -25,8 +24,8 @@ void estorient::init_orient(int setblksz, int setprec, int setmaxshift)
 }
 void estorient::transpose()
 {
-  const int orienth = h/ofield.blksz;
-  const int orientw = w/ofield.blksz;
+  const int orienth = (h-1)/ofield.blksz+1;
+  const int orientw = (w-1)/ofield.blksz+1;
   swap(orientenergy.hJ,orientenergy.vJ);
   if (orientenergy.hJ != NULL)
   {
@@ -49,24 +48,26 @@ void estorient::transpose()
   dwtnode::transpose();
   return;
 }
-// NB: modify this later for robustness to images with nonstandard
-// image dimensions (ie, where h%blksz!=0 or w%blksz!=0)
+// Note that for images where the dimensions are not a multiple of blksz, the
+// "incomplete" edge blocks will result in proportionately lower energy values
 void estorient::calc_energies()
 {
+	const int orienth = (h-1)/ofield.blksz+1;
+  const int orientw = (w-1)/ofield.blksz+1;
   int z, sker; // shift expressed in whole pixels, and fractional (via shift kernel LUT)
   bool ksig;   // flag indicating positive or negative shift
   for (int n=0;n<ofield.numblks;n++)
   {
-    int xbase = (n*ofield.blksz)%w;
-    int ybase = ((n*ofield.blksz)/w)*ofield.blksz;
+    int xbase = (n%orientw)*ofield.blksz;
+		int ybase = (n/orientw)*ofield.blksz;
     // iterate over all orientations
     for (int sigma=-ofield.maxshift;sigma<=ofield.maxshift;sigma++)
     { // initialise prediction energies to 0
       double accVenergy=0, accHenergy=0;
       double tmpV, tmpH;
       // iterate over each pixel in the block
-      for (int y=ybase;y<ybase+ofield.blksz;y++)
-        for (int x=xbase;x<xbase+ofield.blksz;x++)
+      for (int y=ybase;(y<ybase+ofield.blksz)&&y<h;y++)
+        for (int x=xbase;(x<xbase+ofield.blksz)&&x<w;x++)
         {
           tmpV = tmpH = pixels[y*w+x];
           // calculate the vertical high-pass energy
@@ -96,6 +97,8 @@ void estorient::calc_energies()
   }
   return;
 }
+// switching penalty is always dependent on the amount of vertical shift required
+// (ie the shifting used for implementing the horizontal transform
 double estorient::fetch_residual(int n, direction dir, char shift)
 {
   const double alpha = 5.0;  // continuity penalty weight
@@ -103,20 +106,20 @@ double estorient::fetch_residual(int n, direction dir, char shift)
   const double energy =
     (dir==vertical)?orientenergy.vJ[n][ofield.maxshift+shift]
                    :orientenergy.hJ[n][ofield.maxshift+shift];
-  const int fieldh = h/ofield.blksz;
-  const int fieldw = w/ofield.blksz;
+  const int fieldh = (h-1)/ofield.blksz+1;
+  const int fieldw = (w-1)/ofield.blksz+1;
   double cont_penalty   = 0;
   double switch_penalty = 0;
   if (dir==horizontal) // vertical shifts
   {
     // penalise against the horizontal neighbours
-    if (n%fieldw != 0) // left edge of field
+    if (n%fieldw != 0) // skip if left edge of field
     {
       cont_penalty += abs(shift - ofield.orientvec[n-1].vshift);
       if (ofield.orientvec[n-1].hshift != 0)
         switch_penalty += abs(shift); // abs(ofield.orientvec[n-1].hshift);
     }
-    if (n%fieldw != (fieldw-1)) // right edge of field
+    if (n%fieldw != (fieldw-1)) // skip if right edge of field
     {
       cont_penalty += abs(shift - ofield.orientvec[n+1].vshift);
       if (ofield.orientvec[n+1].hshift != 0)
@@ -165,38 +168,6 @@ double estorient::fetch_residual(int n, direction dir, char shift)
   switch_penalty *= beta;
   return energy+cont_penalty+switch_penalty;
 }
-//  if (dir==both)
-//  {
-//    double vloss = fetch_loss(n, vertical, shift);
-//    double hloss = fetch_loss(n, horizontal, shift);
-//    return min(vloss,hloss);
-//  }
-//  const int ybase = (n/fieldw)*ofield.blksz;
-//  const int xbase = (n%fieldw)*ofield.blksz;
-//  const int nbrsize = 4; // # of pixels beyond a 2x2 block
-//                         // eg 4 -> 10x10 pixel neighbourhood
-//  if (dir==vertical)
-//  {
-//    for (int y = -nbrsize; y<=1+nbrsize; y++)
-//      for (int x = -nbrsize; x<=1+nbrsize; x++)
-//      {
-//        cont_penalty += abs(shift - ofield.retrieve(y+ybase,x+xbase,vertical));
-//        if (ofield.retrieve(y+ybase,x+xbase,horizontal)!=0)
-//          switch_penalty += abs(shift);
-//      }
-//  }
-//  else // dir==horizontal
-//  {
-//    char nbrshift;
-//    for (int y = -nbrsize; y<=1+nbrsize; y++)
-//      for (int x = -nbrsize; x<=1+nbrsize; x++)
-//      {
-//        cont_penalty += abs(shift - ofield.retrieve(y+ybase,x+xbase,horizontal));
-//        nbrshift = ofield.retrieve(y+ybase,x+xbase,vertical);
-//        if (nbrshift!=0)
-//          switch_penalty += abs(nbrshift);
-//      }
-//  }
 bool estorient::test_residual(int n, direction dir, char shift, double &best)
 {
   const double alpha = 5.0;  // continuity penalty weight
@@ -206,8 +177,8 @@ bool estorient::test_residual(int n, direction dir, char shift, double &best)
                    :orientenergy.hJ[n][ofield.maxshift+shift];
   if (energy >= best) // early exit
     return false;
-  const int fieldh = h/ofield.blksz;
-  const int fieldw = w/ofield.blksz;
+  const int fieldh = (h-1)/ofield.blksz+1;
+  const int fieldw = (w-1)/ofield.blksz+1;
   double cont_penalty   = 0;
   double switch_penalty = 0;
   if (dir==horizontal) // vertical shifts

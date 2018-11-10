@@ -43,6 +43,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <EnableManagedIncrementalBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</EnableManagedIncrementalBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -52,7 +53,7 @@
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PrecompiledHeader>Create</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
@@ -89,14 +90,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="antialias_tx.cpp" />
+    <ClCompile Include="packlift.cpp" />
     <ClCompile Include="base.cpp" />
     <ClCompile Include="dwtnode_io.cpp" />
     <ClCompile Include="dwtnode_tx.cpp" />
     <ClCompile Include="experiment.cpp" />
     <ClCompile Include="hpfprelift.cpp" />
     <ClCompile Include="orient_est.cpp" />
-    <ClCompile Include="orient_est2.cpp" />
     <ClCompile Include="orient_tx.cpp" />
     <ClCompile Include="packshift.cpp" />
     <ClCompile Include="pyramid.cpp" />

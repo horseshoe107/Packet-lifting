@@ -11,9 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="antialias_tx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="base.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -32,9 +29,6 @@
     <ClCompile Include="orient_est.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="orient_est2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="orient_tx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="support_io.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="packlift.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -86,6 +86,7 @@ void orientationfield::inherit(orientationfield parent)
 }
 void orientationfield::orientwrite(char *fname)
 {
+	const int blkwidth = (w-1)/blksz + 1;
   ofstream fout(fname,ios::binary);
   if (!fout.good())
   {
@@ -94,11 +95,13 @@ void orientationfield::orientwrite(char *fname)
   }
   // write out header
   fout << w << ' ' << h << ' ' << blksz << ' '
-    << oprec << ' ' << maxshift << endl;
+    << oprec << ' ' << maxshift;
   for (int n=0;n<numblks;n++)
   {
+		if (n%blkwidth==0)
+			fout << endl;
     fout << (int)orientvec[n].hshift << ','
-        << (int)orientvec[n].vshift << ' ' << endl;
+        << (int)orientvec[n].vshift << ' ';
   }
   return;
 }
