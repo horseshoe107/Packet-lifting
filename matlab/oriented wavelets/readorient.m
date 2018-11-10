@@ -13,8 +13,8 @@ header = sscanf(tline,'%d');
 w = header(1);
 h = header(2);
 blksz = header(3);
-prec = header(4);
-maxshft = header(5);
+% prec = header(4);
+% maxshft = header(5);
 
 B = reshape(A,w/blksz*2,h/blksz)';
 V = B(:,1:2:size(B,2));
