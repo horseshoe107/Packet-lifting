@@ -14,11 +14,10 @@ void dwtnode::upsample_lift(bool analysis)
   for (int y=0;y<subbands[0]->h;y++)
     for (int x=0;x<subbands[0]->w;x++)
       tmp->pixels[2*y*w+2*x] = subbands[0]->pixels[y*subbands[0]->w+x];
-  // vertical filter
-  for (int y=0;y<h;y++)
+  for (int y=0;y<h;y++) // vertical filter
     for (int x=0;x<w;x++)
       tmp2->pixels[y*w+x] = tmp->filt(&h264[h264N],y*w+x,0,h264N,vertical,true)/32;
-  for (int y=0;y<h;y++)
+  for (int y=0;y<h;y++) // horizontal filter
     for (int x=0;x<w;x++)
       pixels[y*w+x] -= sign*tmp2->filt(&h264[h264N],y*w+x,0,h264N,horizontal,true)/32;
   delete[] tmp;
@@ -72,9 +71,14 @@ void dwtnode::lp3x2_encode(bool halfres, bool adapt)
   }
   return;
 }
-void dwtnode::lp3x2_decode(char *bitrate, bool adapt)
+void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
 {
   dwtbase = disabled;
+  if (halfres)
+  {
+    rawl_decode(bitrate,halfres,adapt);
+    return;
+  }
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   subbands[0]->rawlread((char *)c_fname.c_str());
@@ -113,9 +117,14 @@ void dwtnode::lp2x3_encode(bool halfres, bool adapt)
   }
   return;
 }
-void dwtnode::lp2x3_decode(char *bitrate, bool adapt)
+void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
 {
   dwtbase = disabled;
+  if (halfres)
+  {
+    rawl_decode(bitrate,halfres,adapt);
+    return;
+  }
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   subbands[0]->rawlread((char *)c_fname.c_str());

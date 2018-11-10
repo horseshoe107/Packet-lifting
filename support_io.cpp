@@ -87,16 +87,13 @@ void orientationfield::inherit(orientationfield &parent)
   this->oprec     = parent.oprec;
   this->maxshift  = parent.maxshift;
   this->fieldtype = parent.fieldtype;
-  if (parent.blksz == 0)
-    return;
-  if (parent.blksz >= 2)
-    this->blksz = parent.blksz/2;
-  else // fix this later
+  if (parent.blksz%2!=0) // blksz needs to be multiple of 2
   {
-    cerr << "Cannot inherit from parent; shift field is too fine" << endl;
-    cerr << "Subsampling of shift field is not defined" << endl;
+    cerr << "Subsampling of shift field is not defined for ";
+    cerr << "block size " << parent.blksz << endl;
     exit(1);
   }
+  this->blksz = parent.blksz/2;
   this->numblks   = parent.numblks;
   if (orientvec != NULL)
     delete[] orientvec;
