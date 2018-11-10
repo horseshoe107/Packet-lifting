@@ -88,8 +88,8 @@ class dwtnode
 public:
   // constructor functions (defined in dwtnode_io.cpp)
   dwtnode(int hset, int wset, dwttype, bool initzero=false);
-  dwtnode(char *fname, dwttype);
-  dwtnode(char *fname, int hset, int wset, dwttype, int expi=6);
+  dwtnode(const char *fname, dwttype);
+  dwtnode(const char *fname, int hset, int wset, dwttype, int expi=6);
 	dwtnode(const dwtnode &copy);
   dwtnode& operator=(const dwtnode &target);
   virtual ~dwtnode()
@@ -101,14 +101,14 @@ public:
       delete[] pixels;
   }
   // io functions (defined in dwtnode_io.cpp)
-  void pgmread(char *fname);
-  void rawlread(char *fname, int hset, int wset, int expi=6);
-  void rawlread(char *fname, int expi=6);
+  void pgmread(const char *fname);
+  void rawlread(const char *fname, int hset, int wset, int expi=6);
+  void rawlread(const char *fname, int expi=6);
   bool yuvstreamread(ifstream &yuvin);
   bool uyvystreamread(ifstream &uyvyin);
-  void pgmwrite(char *fname);
-  void rawlwrite(char *fname, int expi=6, bool allbands=false);
-  void csvwrite(char *fname);
+  void pgmwrite(const char *fname);
+  void rawlwrite(const char *fname, int expi=6, bool allbands=false);
+  void csvwrite(const char *fname);
   void yuvstreamwrite(ofstream &yuvout);
   // ordinary manipulation functions (defined in dwtnode_tx.cpp)
   void extract_subband(int band);
@@ -131,16 +131,20 @@ public:
   void downsample_lift(bool analysis);
   void pyramid_encode(bool halfres, bool adapt);
   void pyramid_decode(char *bitrate, bool halfres, bool adapt);
-  void pyramid_encode(int layer=0, bool adapt=false);
-  void pyramid_decode(char *bitrate, int layer=0, bool adapt=false);
+  void pyramid_encode(int depth=0, int layer=0, bool adapt=false);
+  void pyramid_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
   void lp3x2_halfres();
-  void lp3x2_encode(bool halfres, bool adapt);
-  void lp3x2_decode(char *bitrate, bool halfres, bool adapt);
+  void lp3x2_encode(bool halfres, bool adapt=false);
+  void lp3x2_decode(char *bitrate, bool halfres, bool adapt=false);
+  void lp3x2_encode(int depth, int layer, bool adapt=false);
+  void lp3x2_decode(char *bitrate, int depth, int layer, bool adapt=false);
   void lp2x3_halfres();
-  void lp2x3_encode(bool halfres, bool adapt);
-  void lp2x3_decode(char *bitrate, bool halfres, bool adapt);
-  void lp2x3_2layer_encode(bool quartres, bool adapt);
-  void lp2x3_2layer_decode(char *bitrate, bool quartres, bool adapt);
+  void lp2x3_encode(bool halfres, bool adapt=false);
+  void lp2x3_decode(char *bitrate, bool halfres, bool adapt=false);
+  void lp2x3_encode(int depth, int layer, bool adapt=false);
+  void lp2x3_decode(char *bitrate, int depth, int layer, bool adapt=false);
+  void lp2x3_2layer_encode(bool quartres, bool adapt=false);
+  void lp2x3_2layer_decode(char *bitrate, bool quartres, bool adapt=false);
   // packet lifting functions (defined in packlift.cpp)
   friend void packet_transfer(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
@@ -175,19 +179,19 @@ public:
   void halveimage();
   void call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &fout);
   void rawl_encode(bool halfres=false, bool adapt=false);
-  void rawl_encode(int layer=0, bool adapt=false);
+  void rawl_encode(int depth=0, int layer=0, bool adapt=false);
   void rawl_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void rawl_decode(char *bitrate, int layer=0, bool adapt=false);
+  void rawl_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
   void packlift_encode(bool halfres=false, bool adapt=false);
-  void packlift_encode(int layer=0, bool adapt=false);
+  void packlift_encode(int depth=0, int layer=0, bool adapt=false);
   void packlift_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void packlift_decode(char *bitrate, int layer=0, bool adapt=false);
+  void packlift_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
   void packlift_2layer_encode(bool halfres=false, bool adapt=false);
   void packlift_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient_encode(bool halfres=false, bool adapt=false);
-  void orient_encode(int layer=0, bool adapt=false);
+  void orient_encode(int depth=0, int layer=0, bool adapt=false);
   void orient_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void orient_decode(char *bitrate, int layer=0, bool adapt=false);
+  void orient_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
   void orient2_packet_encode(bool halfres=false, bool adapt=false);
   void orient2_packet_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient_2layer_encode(bool halfres=false, bool adapt=false);
@@ -195,9 +199,9 @@ public:
   void packlift_orient2_encode(bool halfres=false, bool adapt=false);
   void packlift_orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void hpfprelift_encode(bool halfres=false, bool adapt=false);
-  void hpfprelift_encode(int layer=0, bool adapt=false);
+  void hpfprelift_encode(int depth=0, int layer=0, bool adapt=false);
   void hpfprelift_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void hpfprelift_decode(char *bitrate, int layer=0, bool adapt=false);
+  void hpfprelift_decode(char *bitrate, int depth=0, int layer=0, bool adapt=false);
   void hpfprelift_2layer_encode(bool halfres=false, bool adapt=false);
   void hpfprelift_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
 // data members

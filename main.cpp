@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "dwtnode.h"
+#include <assert.h>
 int estimate(int argc, _TCHAR* argv[])
 {
 	char currfile[] = "D:\\Work\\Images\\lena.pgm";
@@ -109,14 +110,16 @@ int compresstest(int argc, _TCHAR* argv[])
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
-  int layer=1; // compute mses for layer (0 is full resolution)
+  int depth=1; // number of layers of scalability to create
+  int layer=1; // compute mses for encoding layer (0 is full resolution)
   // TODO: overload all encode & decode functions with layer argument instead of halfres
   bool imageout=halfres; // dump out compressed, decoded images and collate
   testmode mode=packlift;
-  void (dwtnode::*encode_ptr)(int, bool) = NULL;
-  void (dwtnode::*decode_ptr)(char *, int, bool) = NULL;
+  void (dwtnode::*encode_ptr)(int, int, bool) = NULL;
+  void (dwtnode::*decode_ptr)(char *, int, int, bool) = NULL;
   //void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   //void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
+  assert(layer<=depth);
   switch (mode)
   {
   case base:{
@@ -147,14 +150,14 @@ int compresstest(int argc, _TCHAR* argv[])
     if (halfres)
       ref.lp2x3_halfres(); // replace image with laplacian half res
     break;}
-  case pyramid2x3_2layer:{
-    encode_ptr = &dwtnode::lp2x3_2layer_encode;
-    dout << "2 level Tran pyramid MSEs";
-    decode_ptr = &dwtnode::lp2x3_2layer_decode;
-    if (halfres){
-      cerr << "quarter res currently unsupported" << endl;
-      exit(1);}
-    break;}
+  //case pyramid2x3_2layer:{
+  //  encode_ptr = &dwtnode::lp2x3_2layer_encode;
+  //  dout << "2 level Tran pyramid MSEs";
+  //  decode_ptr = &dwtnode::lp2x3_2layer_decode;
+  //  if (halfres){
+  //    cerr << "quarter res currently unsupported" << endl;
+  //    exit(1);}
+  //  break;}
   case packlift:{
     encode_ptr = &dwtnode::packlift_encode;
     dout << "Packet lifting MSEs";
@@ -174,16 +177,16 @@ int compresstest(int argc, _TCHAR* argv[])
     }
     if (adapt) dout << " adaptive";
     break;}
-  case packlift_2layer:{
-    encode_ptr = &dwtnode::packlift_2layer_encode;
-    dout << "2 level packet lifting MSEs";
-    decode_ptr = &dwtnode::packlift_2layer_decode;
-    if (halfres){
-      cerr << "quarter res currently unsupported" << endl;
-      exit(1);
-    }
-    if (adapt) dout << " adaptive";
-    break;}
+  //case packlift_2layer:{
+  //  encode_ptr = &dwtnode::packlift_2layer_encode;
+  //  dout << "2 level packet lifting MSEs";
+  //  decode_ptr = &dwtnode::packlift_2layer_decode;
+  //  if (halfres){
+  //    cerr << "quarter res currently unsupported" << endl;
+  //    exit(1);
+  //  }
+  //  if (adapt) dout << " adaptive";
+  //  break;}
   case packliftorient2:{
     encode_ptr = &dwtnode::packlift_orient2_encode;
     dout << "2 level oriented + packlift MSEs";
@@ -236,42 +239,42 @@ int compresstest(int argc, _TCHAR* argv[])
     if (halfres)
       ref.hpf_oriented_analysis(both,adapt);
     break;}
-  case hpfprelift_2layer:{
-    encode_ptr = &dwtnode::hpfprelift_2layer_encode;
-    dout << "2 level HPF prelift MSEs";
-    decode_ptr = &dwtnode::hpfprelift_2layer_decode;
-    if (halfres)
-      ref.hpf_oriented_analysis(both,adapt);
-    break;}
+  //case hpfprelift_2layer:{
+  //  encode_ptr = &dwtnode::hpfprelift_2layer_encode;
+  //  dout << "2 level HPF prelift MSEs";
+  //  decode_ptr = &dwtnode::hpfprelift_2layer_decode;
+  //  if (halfres)
+  //    ref.hpf_oriented_analysis(both,adapt);
+  //  break;}
   default:
     cerr << "This test mode is unsupported" << endl;
     exit(1);
   }
   {
-    (in.*encode_ptr)(halfres,adapt);
+    (in.*encode_ptr)(depth,layer,adapt);
     in.call_batch(mode,Cdecomp,halfres,dout); // run kdu_compress
     //if (halfres) in.halveimage();
     in.shrink(layer); // reduce dimensions if layer>0
     //// test perfect reconstruction
-    (in.*decode_ptr)("",halfres,adapt);
+    (in.*decode_ptr)("",depth,layer,adapt);
     cout << "testing perfect reconstruction: " << mse(ref,in) << endl;
     //'(' << 10*log10(255^2/mse) << ')'; // output psnr instead
-    (in.*decode_ptr)("0.1",halfres,adapt);
+    (in.*decode_ptr)("0.1",depth,layer,adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.1.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.2",halfres,adapt);
+    (in.*decode_ptr)("0.2",depth,layer,adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.2.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.4",halfres,adapt);
+    (in.*decode_ptr)("0.4",depth,layer,adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.4.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.6",halfres,adapt);
+    (in.*decode_ptr)("0.6",depth,layer,adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.6.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("0.8",halfres,adapt);
+    (in.*decode_ptr)("0.8",depth,layer,adapt);
     if (imageout) in.pgmwrite("tmp\\recon0.8.pgm");
     dout << mse(ref,in) << ' ';
-    (in.*decode_ptr)("1.0",halfres,adapt);
+    (in.*decode_ptr)("1.0",depth,layer,adapt);
     if (imageout)
     {
       if (halfres)

@@ -14,7 +14,7 @@ dwtnode::dwtnode(int hset, int wset, dwttype type, bool initzero)
     subbands[n] = NULL;
 }
 // initialise with data from a file; currently only works for pgm
-dwtnode::dwtnode(char *fname, dwttype type)
+dwtnode::dwtnode(const char *fname, dwttype type)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
   dwtbase=type, pixels=NULL;
@@ -28,7 +28,7 @@ dwtnode::dwtnode(char *fname, dwttype type)
     exit(1);
   }
 }
-dwtnode::dwtnode(char *fname, int hset, int wset, dwttype type, int expi)
+dwtnode::dwtnode(const char *fname, int hset, int wset, dwttype type, int expi)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
   dwtbase=type, pixels=NULL;
@@ -109,7 +109,7 @@ void chk_pgm_comment(ifstream &in, bool eatspace)
       return; // useful character; quit function
   }
 }
-void dwtnode::pgmread(char *fname)
+void dwtnode::pgmread(const char *fname)
 {
   char c[2], tmp;
   int maxval;
@@ -157,7 +157,7 @@ void dwtnode::pgmread(char *fname)
     ofield.clearfield(h,w);
   return;
 }
-void dwtnode::rawlread(char *fname, int hset, int wset, int expi)
+void dwtnode::rawlread(const char *fname, int hset, int wset, int expi)
 {
   short t;
   h=hset; w=wset;
@@ -188,7 +188,7 @@ void dwtnode::rawlread(char *fname, int hset, int wset, int expi)
     ofield.clearfield(h,w);
   return;
 }
-void dwtnode::rawlread(char *fname, int expi)
+void dwtnode::rawlread(const char *fname, int expi)
 {  rawlread(fname,h,w,expi);  }
 // stream object must be binary: ifstream fin(fname,ios::binary);
 bool dwtnode::yuvstreamread(ifstream &yuvin)
@@ -241,7 +241,7 @@ bool dwtnode::uyvystreamread(ifstream &uyvyin)
     ofield.clearfield(h,w);
   return uyvyin.good();
 }
-void dwtnode::pgmwrite(char *fname)
+void dwtnode::pgmwrite(const char *fname)
 {
   const int verstep = 1<<dwtlevel[vertical];
   const int horstep = 1<<dwtlevel[horizontal];
@@ -278,7 +278,7 @@ void dwtnode::pgmwrite(char *fname)
 }
 // write 16-bit values out in little-endian format. pixel
 // values are prescaled up by 2^expi, with default expi=6
-void dwtnode::rawlwrite(char *fname, int expi, bool allbands)
+void dwtnode::rawlwrite(const char *fname, int expi, bool allbands)
 {
   const int verstep = allbands ? 1 : 1<<dwtlevel[vertical];
   const int horstep = allbands ? 1 : 1<<dwtlevel[horizontal];
@@ -317,7 +317,7 @@ void dwtnode::rawlwrite(char *fname, int expi, bool allbands)
   rawout.close();
   return;
 }
-void dwtnode::csvwrite(char *fname)
+void dwtnode::csvwrite(const char *fname)
 {
   const int verstep = 1<<dwtlevel[vertical];
   const int horstep = 1<<dwtlevel[horizontal];

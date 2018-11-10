@@ -54,9 +54,21 @@ void dwtnode::pyramid_encode(bool halfres, bool adapt)
   }
   return;
 }
-void dwtnode::pyramid_encode(int layer, bool adapt)
+void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
 {
-
+  dwtnode *curr = this;
+  for (int i=0;i<depth;i++,curr=curr->subbands[0])
+  {
+    curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,disabled,true);
+    curr->downsample_lift(true);
+    curr->upsample_lift(true);
+    // if layer==0 write out every layer
+    string d_fname = "tmp\\diff";
+    d_fname += i + ".rawl";
+    curr->rawlwrite(d_fname.c_str());
+  }
+  curr->rawlwrite("tmp\\coarse.rawl");
+  return;
 }
 void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
 {
@@ -67,14 +79,14 @@ void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
   }
   string d_fname = "tmp\\diff";
   d_fname = d_fname + bitrate + ".rawl";
-  rawlread((char *)d_fname.c_str());
+  rawlread(d_fname.c_str());
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
   this->subbands[0] = new dwtnode((char *)c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
   upsample_lift(false);
   return;
 }
-void dwtnode::pyramid_decode(char *bitrate, int layer, bool adapt)
+void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
 {
 
 }

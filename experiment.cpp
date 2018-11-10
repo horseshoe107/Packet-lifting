@@ -118,7 +118,7 @@ void dwtnode::rawl_encode(bool halfres, bool adapt)
   else rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::rawl_encode(int layer, bool adapt)
+void dwtnode::rawl_encode(int depth, int layer, bool adapt)
 {
   for (int i=0;i<layer;i++)
     analysis(both);
@@ -132,7 +132,7 @@ void dwtnode::rawl_decode(char *bitrate, bool halfres, bool adapt)
   fname += ".rawl";
   rawlread((char *)fname.c_str());
 }
-void dwtnode::rawl_decode(char *bitrate, int layer, bool adapt)
+void dwtnode::rawl_decode(char *bitrate, int depth, int layer, bool adapt)
 {
   string fname = "tmp\\out";
   fname += bitrate;
@@ -162,7 +162,7 @@ void dwtnode::packlift_encode(bool halfres, bool adapt)
   rawlwrite("tmp\\out.rawl");
   return;
 }
-//void dwtnode::packlift_encode(int layer, bool adapt)
+//void dwtnode::packlift_encode(int depth, int layer, bool adapt)
 //{
 //  packlift_analysis(both,adapt);
 //  if (!halfres)
@@ -189,7 +189,7 @@ void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
   synthesis(both);
   return;
 }
-//void dwtnode::packlift_decode(char *bitrate, int layer, bool adapt)
+//void dwtnode::packlift_decode(char *bitrate, int depth, int layer, bool adapt)
 //{
 //  rawl_decode(bitrate,halfres,adapt);
 //  if (!halfres)
