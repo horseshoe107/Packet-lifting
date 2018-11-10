@@ -103,8 +103,8 @@ void dwtnode::call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &f
     batch << "pyramid.bat";
   else
     batch << "out.bat";
-  fout <<dwtmode_strings[dwtbase]<<" Cdecomp:"<< Cdecomp << endl;
-  batch <<" "<<h<<" "<<w<<" "<<dwtbase<<" \""<<Cdecomp<<"\"";
+  fout <<dwtmode_strings[txbase]<<" Cdecomp:"<< Cdecomp << endl;
+  batch <<" "<<h<<" "<<w<<" "<<txbase<<" \""<<Cdecomp<<"\"";
   system(batch.str().c_str());
 }
 // wrappers for analysis-encode-decode-synthesis experimentation
@@ -162,14 +162,14 @@ void dwtnode::packlift_encode(bool halfres, bool adapt)
   rawlwrite("tmp\\out.rawl");
   return;
 }
-//void dwtnode::packlift_encode(int depth, int layer, bool adapt)
-//{
-//  packlift_analysis(both,adapt);
-//  if (!halfres)
-//    synthesis(both);
-//  rawlwrite("tmp\\out.rawl");
-//  return;
-//}
+void dwtnode::packlift_encode(int depth, int layer, bool adapt)
+{
+  //packlift_analysis(both,adapt);
+  //if (!halfres)
+  //  synthesis(both);
+  //rawlwrite("tmp\\out.rawl");
+  //return;
+}
 void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
@@ -189,16 +189,16 @@ void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
   synthesis(both);
   return;
 }
-//void dwtnode::packlift_decode(char *bitrate, int depth, int layer, bool adapt)
-//{
-//  rawl_decode(bitrate,halfres,adapt);
-//  if (!halfres)
-//  {
-//    analysis(both);
-//    packlift_synthesis(both,adapt);
-//  }
-//	return;
-//}
+void dwtnode::packlift_decode(char *bitrate, int depth, int layer, bool adapt)
+{
+ // rawl_decode(bitrate,halfres,adapt);
+ // if (!halfres)
+ // {
+ //   analysis(both);
+ //   packlift_synthesis(both,adapt);
+ // }
+	//return;
+}
 void dwtnode::packlift_2layer_encode(bool quartres, bool adapt)
 {
   packlift_analysis(both,adapt);
@@ -235,6 +235,9 @@ void dwtnode::orient_encode(bool halfres, bool adapt)
   rawlwrite("tmp\\out.rawl");
   return;
 }
+void dwtnode::orient_encode(int depth, int layer, bool adapt)
+{
+}
 void dwtnode::orient_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
@@ -244,6 +247,9 @@ void dwtnode::orient_decode(char *bitrate, bool halfres, bool adapt)
     oriented_synthesis(both);
   }
   return;
+}
+void dwtnode::orient_decode(char *bitrate, int depth, int layer, bool adapt)
+{
 }
 void dwtnode::orient2_packet_encode(bool halfres, bool adapt)
 {
@@ -362,6 +368,9 @@ void dwtnode::hpfprelift_encode(bool halfres, bool adapt)
 	rawlwrite("tmp\\out.rawl");
 	return;
 }
+void dwtnode::hpfprelift_encode(int depth, int layer, bool adapt)
+{
+}
 void dwtnode::hpfprelift_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
@@ -371,6 +380,9 @@ void dwtnode::hpfprelift_decode(char *bitrate, bool halfres, bool adapt)
     hpf_oriented_synthesis(both,adapt);
   }
 	return;
+}
+void dwtnode::hpfprelift_decode(char *bitrate, int depth, int layer, bool adapt)
+{
 }
 void dwtnode::hpfprelift_2layer_encode(bool halfres, bool adapt)
 {

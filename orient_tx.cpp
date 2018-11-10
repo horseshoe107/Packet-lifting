@@ -573,7 +573,7 @@ void dwtnode::oriented_analysis(direction dir)
     oriented_analysis(horizontal);
     return;
   }
-  switch (dwtbase)
+  switch (txbase)
   {
   case w5x3:
     apply_oriented_LHlift(-0.5,dir);
@@ -604,7 +604,7 @@ void dwtnode::oriented_synthesis(direction dir)
     return;
   }
   dwtlevel[dir]--;
-  switch (dwtbase)
+  switch (txbase)
   {
   case w5x3:
     apply_gain_factors(1,2,dir);

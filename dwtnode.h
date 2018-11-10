@@ -1,9 +1,9 @@
-#ifndef __MYCLASS_H_INCLUDED__
-#define __MYCLASS_H_INCLUDED__
+#ifndef _DWTNODE_CLASS
+#define _DWTNODE_CLASS
 enum direction {vertical,horizontal,both};
 direction operator!(direction dir); // (defined in base.cpp)
-enum dwttype {w5x3, w9x7, disabled};
-enum testmode {base,pyramid,pyramid3x2,pyramid2x3,pyramid2x3_2layer,
+enum txtype {w5x3, w9x7, pyramid, pyramid3x2, pyramid2x3, none};
+enum testmode {base,pyramid_test,pyramid3x2_test,pyramid2x3_test,pyramid2x3_2layer,
   packlift,packlift_2layer,packliftorient2,
   orient,orient2packet,orient_2layer,
   hpfprelift,hpfprelift_2layer};
@@ -87,9 +87,9 @@ class dwtnode
   friend class estorient;
 public:
   // constructor functions (defined in dwtnode_io.cpp)
-  dwtnode(int hset, int wset, dwttype, bool initzero=false);
-  dwtnode(const char *fname, dwttype);
-  dwtnode(const char *fname, int hset, int wset, dwttype, int expi=6);
+  dwtnode(int hset, int wset, txtype, bool initzero=false);
+  dwtnode(const char *fname, txtype);
+  dwtnode(const char *fname, int hset, int wset, txtype, int expi=6);
 	dwtnode(const dwtnode &copy);
   dwtnode& operator=(const dwtnode &target);
   virtual ~dwtnode()
@@ -143,8 +143,6 @@ public:
   void lp2x3_decode(char *bitrate, bool halfres, bool adapt=false);
   void lp2x3_encode(int depth, int layer, bool adapt=false);
   void lp2x3_decode(char *bitrate, int depth, int layer, bool adapt=false);
-  void lp2x3_2layer_encode(bool quartres, bool adapt=false);
-  void lp2x3_2layer_decode(char *bitrate, bool quartres, bool adapt=false);
   // packet lifting functions (defined in packlift.cpp)
   friend void packet_transfer(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
@@ -212,7 +210,7 @@ protected:
   // done through indexing dwtlevel[vertical] and dwtlevel[horizontal]
   // as appropriate.
   int dwtlevel[2];
-  enum dwttype dwtbase; // indicates the wavelet filters used, eg w5x3 or w9x7
+  enum txtype txbase; // indicates the transform used, eg w5x3, w9x7, pyramid 
   double *pixels;
 public:
   dwtnode *subbands[4]; // order of subbands: LL,HL,LH,HH
@@ -221,8 +219,8 @@ public:
 class estorient : public dwtnode
 { // functions defined in orient_est.cpp
 public:
-  estorient(char* fname,dwttype type):dwtnode(fname,type){}
-  estorient(char* fname,int hset,int wset,dwttype type):dwtnode(fname,hset,wset,type){}
+  estorient(char* fname,txtype type):dwtnode(fname,type){}
+  estorient(char* fname,int hset,int wset,txtype type):dwtnode(fname,hset,wset,type){}
   estorient(dwtnode *target);
   void init_orient(int setblksz, int setprec, int setmaxshift);
   void transpose();
@@ -238,7 +236,7 @@ protected:
 class estorient2 : public dwtnode
 {
 public:
-  estorient2(char* fname,dwttype type):dwtnode(fname,type){}
+  estorient2(char* fname,txtype type):dwtnode(fname,type){}
   void calc_energies(int minblksize, float lambda);
   void quadtree_estimate();
   void quadtree_flatten();

@@ -111,7 +111,7 @@ int compresstest(int argc, _TCHAR* argv[])
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   int depth=1; // number of layers of scalability to create
-  int layer=1; // compute mses for encoding layer (0 is full resolution)
+  int layer=0; // compute mses for encoding layer (0 is full resolution)
   // TODO: overload all encode & decode functions with layer argument instead of halfres
   bool imageout=halfres; // dump out compressed, decoded images and collate
   testmode mode=packlift;
@@ -150,14 +150,6 @@ int compresstest(int argc, _TCHAR* argv[])
     if (halfres)
       ref.lp2x3_halfres(); // replace image with laplacian half res
     break;}
-  //case pyramid2x3_2layer:{
-  //  encode_ptr = &dwtnode::lp2x3_2layer_encode;
-  //  dout << "2 level Tran pyramid MSEs";
-  //  decode_ptr = &dwtnode::lp2x3_2layer_decode;
-  //  if (halfres){
-  //    cerr << "quarter res currently unsupported" << endl;
-  //    exit(1);}
-  //  break;}
   case packlift:{
     encode_ptr = &dwtnode::packlift_encode;
     dout << "Packet lifting MSEs";
@@ -187,24 +179,24 @@ int compresstest(int argc, _TCHAR* argv[])
   //  }
   //  if (adapt) dout << " adaptive";
   //  break;}
-  case packliftorient2:{
-    encode_ptr = &dwtnode::packlift_orient2_encode;
-    dout << "2 level oriented + packlift MSEs";
-    decode_ptr = &dwtnode::packlift_orient2_decode;
-    if (halfres)
-    {
-      ref.oriented_analysis(both);
-      ref.extract_subband(0);
-      ref.extract_subband(1);
-      ref.extract_subband(2);
-      ref.subbands[0]->analysis(both);
-      ref.subbands[1]->analysis(both);
-      ref.subbands[2]->analysis(both);
-      ref.packlift(both,true,adapt);
-      ref.subbands[0]->synthesis(both);
-      ref.interleave(true);
-    }
-    break;}
+  //case packliftorient2:{
+  //  encode_ptr = &dwtnode::packlift_orient2_encode;
+  //  dout << "2 level oriented + packlift MSEs";
+  //  decode_ptr = &dwtnode::packlift_orient2_decode;
+  //  if (halfres)
+  //  {
+  //    ref.oriented_analysis(both);
+  //    ref.extract_subband(0);
+  //    ref.extract_subband(1);
+  //    ref.extract_subband(2);
+  //    ref.subbands[0]->analysis(both);
+  //    ref.subbands[1]->analysis(both);
+  //    ref.subbands[2]->analysis(both);
+  //    ref.packlift(both,true,adapt);
+  //    ref.subbands[0]->synthesis(both);
+  //    ref.interleave(true);
+  //  }
+  //  break;}
   case orient:{
     encode_ptr = &dwtnode::orient_encode;
     dout << "Oriented wavelet MSEs";
@@ -212,26 +204,26 @@ int compresstest(int argc, _TCHAR* argv[])
     if (halfres)
       ref.oriented_analysis(both);
     break;}
-  case orient2packet:{
-    encode_ptr = &dwtnode::orient2_packet_encode;
-    dout << "Oriented packet wavelet MSEs";
-		decode_ptr = &dwtnode::orient2_packet_decode;
-    if (halfres)
-    {
-      ref.oriented_packet_analysis(both);
-      ref.extract_subband(0);
-      ref.subbands[0]->oriented_synthesis(both);
-      dwtnode tmp(*ref.subbands[0]);
-      ref = tmp;
-    }
-    break;}
-  case orient_2layer:{
-    encode_ptr = &dwtnode::orient_2layer_encode;
-    dout << "2 level oriented MSEs";
-    decode_ptr = &dwtnode::orient_2layer_decode;
-    if (halfres)
-      ref.oriented_analysis(both);
-    break;}
+  //case orient2packet:{
+  //  encode_ptr = &dwtnode::orient2_packet_encode;
+  //  dout << "Oriented packet wavelet MSEs";
+		//decode_ptr = &dwtnode::orient2_packet_decode;
+  //  if (halfres)
+  //  {
+  //    ref.oriented_packet_analysis(both);
+  //    ref.extract_subband(0);
+  //    ref.subbands[0]->oriented_synthesis(both);
+  //    dwtnode tmp(*ref.subbands[0]);
+  //    ref = tmp;
+  //  }
+  //  break;}
+  //case orient_2layer:{
+  //  encode_ptr = &dwtnode::orient_2layer_encode;
+  //  dout << "2 level oriented MSEs";
+  //  decode_ptr = &dwtnode::orient_2layer_decode;
+  //  if (halfres)
+  //    ref.oriented_analysis(both);
+  //  break;}
   case hpfprelift:{
     encode_ptr = &dwtnode::hpfprelift_encode;
     dout << "HPF prelift MSEs";

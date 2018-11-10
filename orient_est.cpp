@@ -4,7 +4,7 @@
 #include "orient.h"
 extern double splines[];
 extern const int splines_extent;
-estorient::estorient(dwtnode *target):dwtnode(target->h,target->w,target->dwtbase)
+estorient::estorient(dwtnode *target):dwtnode(target->h,target->w,target->txbase)
 {
   dwtlevel[vertical]=target->dwtlevel[vertical];
   dwtlevel[horizontal]=target->dwtlevel[horizontal];

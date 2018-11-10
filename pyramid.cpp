@@ -8,8 +8,8 @@ static const int h264N = 5;
 void dwtnode::upsample_lift(bool analysis)
 {
   int sign = analysis?+1:-1;
-  dwtnode *tmp = new dwtnode(h,w,disabled,true);
-  dwtnode *tmp2 = new dwtnode(h,w,disabled,true);
+  dwtnode *tmp = new dwtnode(h,w,txbase,true);
+  dwtnode *tmp2 = new dwtnode(h,w,txbase,true);
   // copy coarse band into tmp to "upsample" with zeros
   for (int y=0;y<subbands[0]->h;y++)
     for (int x=0;x<subbands[0]->w;x++)
@@ -27,7 +27,7 @@ void dwtnode::upsample_lift(bool analysis)
 void dwtnode::downsample_lift(bool analysis)
 {
   double sign = (analysis)?+1:-1;
-  dwtnode *tmp = new dwtnode((h+1)/2,w,disabled,true);
+  dwtnode *tmp = new dwtnode((h+1)/2,w,txbase,true);
   // vertical filtering first; skip every 2nd row
   for (int y=0;y<subbands[0]->h;y++)
     for (int x=0;x<w;x++)
@@ -42,7 +42,7 @@ void dwtnode::downsample_lift(bool analysis)
 }
 void dwtnode::pyramid_encode(bool halfres, bool adapt)
 {
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
+  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,txbase,true);
   downsample_lift(true);
   upsample_lift(true);
   if (halfres)
@@ -59,13 +59,15 @@ void dwtnode::pyramid_encode(int depth, int layer, bool adapt)
   dwtnode *curr = this;
   for (int i=0;i<depth;i++,curr=curr->subbands[0])
   {
-    curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,disabled,true);
+    if (curr->subbands[0]!=nullptr)
+      delete subbands[0];
+    curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,txbase,true);
     curr->downsample_lift(true);
     curr->upsample_lift(true);
-    // if layer==0 write out every layer
     string d_fname = "tmp\\diff";
     d_fname += i + ".rawl";
-    curr->rawlwrite(d_fname.c_str());
+    if (i >= layer) // write out all layers needed to reconstruct
+      curr->rawlwrite(d_fname.c_str());
   }
   curr->rawlwrite("tmp\\coarse.rawl");
   return;
@@ -82,13 +84,34 @@ void dwtnode::pyramid_decode(char *bitrate, bool halfres, bool adapt)
   rawlread(d_fname.c_str());
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode((char *)c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
+  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,txbase);
   upsample_lift(false);
   return;
 }
 void dwtnode::pyramid_decode(char *bitrate, int depth, int layer, bool adapt)
 {
-
+  dwtnode *curr = this;
+  for (int i=layer;i<depth;i++,curr=curr->subbands[0])
+  {
+    string d_fname = "tmp\\diff";
+    d_fname += i;
+    d_fname = d_fname + bitrate + ".rawl";
+    rawlread(d_fname.c_str());
+    curr->rawlread(d_fname.c_str());
+    if (curr->subbands[0]!=nullptr)
+      delete subbands[0];
+    curr->subbands[0] = new dwtnode((curr->h+1)/2,(curr->w+1)/2,txbase,true);
+  }
+  string c_fname = "tmp\\coarse";
+  c_fname = c_fname + bitrate + ".rawl";
+  curr->rawlread(c_fname.c_str());
+  for (int i=depth-1;i>=layer;i--)
+  {
+    curr=this;
+    for (int n=0;n<i;n++)
+      curr = curr->subbands[0];
+    curr->upsample_lift(false);
+  }
 }
 void dwtnode::lp3x2_halfres()
 {
@@ -119,6 +142,9 @@ void dwtnode::lp3x2_encode(bool halfres, bool adapt)
   }
   return;
 }
+void dwtnode::lp3x2_encode(int depth, int layer, bool adapt)
+{
+}
 void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
 {
   if (halfres)
@@ -131,10 +157,13 @@ void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
   rawlread((char *)d_fname.c_str());
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode((char *)c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
+  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
   downsample_lift(false);
   upsample_lift(false);
   return;
+}
+void dwtnode::lp3x2_decode(char *bitrate, int depth, int layer, bool adapt)
+{
 }
 void dwtnode::lp2x3_halfres()
 {
@@ -162,6 +191,9 @@ void dwtnode::lp2x3_encode(bool halfres, bool adapt)
   }
   return;
 }
+void dwtnode::lp2x3_encode(int depth, int layer, bool adapt)
+{
+}
 void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
 {
   if (halfres)
@@ -174,51 +206,12 @@ void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
   rawlread((char *)d_fname.c_str());
   string c_fname = "tmp\\coarse";
   c_fname = c_fname + bitrate + ".rawl";
-  this->subbands[0] = new dwtnode((char *)c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
+  this->subbands[0] = new dwtnode(c_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
   upsample_lift(false);
   downsample_lift(false);
   upsample_lift(false);
   return;
 }
-void dwtnode::lp2x3_2layer_encode(bool quartres, bool adapt)
+void dwtnode::lp2x3_decode(char *bitrate, int depth, int layer, bool adapt)
 {
-  this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
-  downsample_lift(true);
-  upsample_lift(true);
-  subbands[0]->subbands[0] = new dwtnode((subbands[0]->h+1)/2,(subbands[0]->w+1)/2,disabled,true);
-  subbands[0]->downsample_lift(true);
-  subbands[0]->upsample_lift(true);
-  if (quartres)
-    subbands[0]->subbands[0]->rawlwrite("tmp\\out.rawl");
-  else
-  {
-    rawlwrite("tmp\\diff1.rawl");
-    subbands[0]->rawlwrite("tmp\\diff2.rawl");
-    subbands[0]->subbands[0]->rawlwrite("tmp\\coarse.rawl");
-  }
-  return;
-}
-void dwtnode::lp2x3_2layer_decode(char *bitrate, bool quartres, bool adapt)
-{
-  if (quartres)
-  {
-    rawl_decode(bitrate,quartres,adapt);
-    return;
-  }
-  string d1_fname = "tmp\\diff1";
-  d1_fname = d1_fname + bitrate + ".rawl";
-  string d2_fname = "tmp\\diff2";
-  d2_fname = d2_fname + bitrate + ".rawl";
-  string c_fname = "tmp\\coarse";
-  c_fname = c_fname + bitrate + ".rawl";
-  rawlread((char *)d1_fname.c_str());
-  this->subbands[0] = new dwtnode((char *)d2_fname.c_str(),(h+1)/2,(w+1)/2,disabled);
-  subbands[0]->subbands[0] = new dwtnode((char *)c_fname.c_str(),(subbands[0]->h+1)/2,(subbands[0]->w+1)/2,disabled);
-  subbands[0]->upsample_lift(false);
-  subbands[0]->downsample_lift(false);
-  subbands[0]->upsample_lift(false);
-  upsample_lift(false);
-  downsample_lift(false);
-  upsample_lift(false);
-  return;
 }

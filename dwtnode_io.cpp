@@ -2,9 +2,9 @@
 #include <ctype.h>
 #include "base.h"
 #include "dwtnode.h"
-dwtnode::dwtnode(int hset, int wset, dwttype type, bool initzero)
+dwtnode::dwtnode(int hset, int wset, txtype type, bool initzero)
 {
-  ofield.h=h=hset, ofield.w=w=wset, dwtbase=type;
+  ofield.h=h=hset, ofield.w=w=wset, txbase=type;
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
   pixels = new double[h*w];
   if (initzero)
@@ -14,10 +14,10 @@ dwtnode::dwtnode(int hset, int wset, dwttype type, bool initzero)
     subbands[n] = NULL;
 }
 // initialise with data from a file; currently only works for pgm
-dwtnode::dwtnode(const char *fname, dwttype type)
+dwtnode::dwtnode(const char *fname, txtype type)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
-  dwtbase=type, pixels=NULL;
+  txbase=type, pixels=NULL;
   for (int n=0;n<4;n++)
     subbands[n] = NULL;
   if (strcmp(fname+strlen(fname)-4,".pgm") == 0)
@@ -28,10 +28,10 @@ dwtnode::dwtnode(const char *fname, dwttype type)
     exit(1);
   }
 }
-dwtnode::dwtnode(const char *fname, int hset, int wset, dwttype type, int expi)
+dwtnode::dwtnode(const char *fname, int hset, int wset, txtype type, int expi)
 {
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
-  dwtbase=type, pixels=NULL;
+  txbase=type, pixels=NULL;
   for (int n=0;n<4;n++)
     subbands[n] = NULL;
   if (strcmp(fname+strlen(fname)-5,".rawl") == 0)
@@ -48,7 +48,7 @@ dwtnode::dwtnode(const dwtnode &target)
   this->w=target.w;
   dwtlevel[vertical]=target.dwtlevel[vertical];
   dwtlevel[horizontal]=target.dwtlevel[horizontal];
-  dwtbase=target.dwtbase;
+  txbase=target.txbase;
   pixels = new double[h*w];
   for (int n=0;n<h*w;n++)
     pixels[n]=target.pixels[n];
@@ -69,7 +69,7 @@ dwtnode& dwtnode::operator=(const dwtnode &target)
   this->w=target.w;
   dwtlevel[vertical]=target.dwtlevel[vertical];
   dwtlevel[horizontal]=target.dwtlevel[horizontal];
-  dwtbase=target.dwtbase;
+  txbase=target.txbase;
   if (pixels!=NULL)
     delete[] pixels;
   pixels = new double[h*w];

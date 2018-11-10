@@ -135,8 +135,8 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
   bool ksig0, ksig1;  // flag indicating positive or negative shift
   if (dir == vertical)
 	{ // temporary row arrays for holding post-warping data
-		dwtnode tmp0(1,w,this->dwtbase), tmp1(1,w,this->dwtbase);
-		dwtnode sum((h+2*s-1)/(2*s),(w+1)/2,dwtbase,true), diff=sum;
+		dwtnode tmp0(1,w,this->txbase), tmp1(1,w,this->txbase);
+		dwtnode sum((h+2*s-1)/(2*s),(w+1)/2,txbase,true), diff=sum;
     for (int y=0;y<h;y+=2*s) // lifting to the L rows
     { // apply warping first, write output to temporary buffers
       for (int x=0;x<w;x++)
@@ -192,7 +192,7 @@ void dwtnode::hpf_HLlift(double a, direction dir, bool adapt)
 	}
   else // horizontal
   {
-    dwtnode sum((h+1)/2,(w+2*s-1)/(2*s),dwtbase,true), diff=sum;
+    dwtnode sum((h+1)/2,(w+2*s-1)/(2*s),txbase,true), diff=sum;
     for (int x=0;x<w;x+=2*s) // lifting to the L cols
       for (int y=0;y<h;y+=2) // only lifting to the L (orthogonal) rows as well!
       {
@@ -260,9 +260,9 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
   bool ksig0, ksig1;  // flag indicating positive or negative shift
   if (dir == vertical)
 	{ // temporary row arrays for holding post-warping data
-		dwtnode tmp0(1,w,this->dwtbase), tmp1(1,w,this->dwtbase);
-		dwtnode v0((h+2*s-1)/(2*s),(w+1)/2,dwtbase,true), v1=v0;
-    dwtnode low0((h+2*s-1)/(2*s),(w+1)/2,dwtbase,true), low1=low0;
+		dwtnode tmp0(1,w,this->txbase), tmp1(1,w,this->txbase);
+		dwtnode v0((h+2*s-1)/(2*s),(w+1)/2,txbase,true), v1=v0;
+    dwtnode low0((h+2*s-1)/(2*s),(w+1)/2,txbase,true), low1=low0;
     for (int y=0;y<h;y+=2*s) // lifting to the L rows
     { // apply warping first, write output to temporary buffers
       for (int x=0;x<w;x++)
@@ -321,8 +321,8 @@ void dwtnode::hpf_update_HLlift(double a, direction dir, bool adapt)
 	}
   else // horizontal
   { 
-    dwtnode v0((h+1)/2,(w+2*s-1)/(2*s),dwtbase,true), v1=v0;
-    dwtnode low0((h+1)/2,(w+2*s-1)/(2*s),dwtbase,true), low1=low0;
+    dwtnode v0((h+1)/2,(w+2*s-1)/(2*s),txbase,true), v1=v0;
+    dwtnode low0((h+1)/2,(w+2*s-1)/(2*s),txbase,true), low1=low0;
     for (int x=0;x<w;x+=2*s) // lifting to the L cols
       for (int y=0;y<h;y+=2) // only lifting to the L (orthogonal) rows as well!
       {
@@ -375,7 +375,7 @@ void dwtnode::hpf_oriented_analysis(direction dir, bool adapt)
 		hpf_oriented_analysis(horizontal,adapt);
 		return;
 	}
-  switch (dwtbase)
+  switch (txbase)
   {
   case w5x3:
     hpf_HLlift(-0.5,dir,adapt);
@@ -400,7 +400,7 @@ void dwtnode::hpf_oriented_synthesis(direction dir, bool adapt)
 		return;
 	}
   dwtlevel[dir]--;
-  switch (dwtbase)
+  switch (txbase)
   {
   case w5x3:
     apply_gain_factors(1,2,dir);
