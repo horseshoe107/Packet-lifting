@@ -42,7 +42,6 @@ void dwtnode::downsample_lift(bool analysis)
 }
 void dwtnode::lp3x2_halfres()
 {
-  dwtbase = disabled;
   this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
   downsample_lift(true);
   upsample_lift(true);
@@ -57,7 +56,6 @@ void dwtnode::lp3x2_halfres()
 }
 void dwtnode::lp3x2_encode(bool halfres, bool adapt)
 {
-  dwtbase = disabled;
   this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
   downsample_lift(true);
   upsample_lift(true);
@@ -73,7 +71,6 @@ void dwtnode::lp3x2_encode(bool halfres, bool adapt)
 }
 void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
 {
-  dwtbase = disabled;
   if (halfres)
   {
     rawl_decode(bitrate,halfres,adapt);
@@ -91,7 +88,6 @@ void dwtnode::lp3x2_decode(char *bitrate, bool halfres, bool adapt)
 }
 void dwtnode::lp2x3_halfres()
 {
-  dwtbase = disabled;
   this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
   downsample_lift(true);
   delete [] this->pixels;
@@ -104,7 +100,6 @@ void dwtnode::lp2x3_halfres()
 }
 void dwtnode::lp2x3_encode(bool halfres, bool adapt)
 {
-  dwtbase = disabled;
   this->subbands[0] = new dwtnode((h+1)/2,(w+1)/2,disabled,true);
   downsample_lift(true);
   upsample_lift(true);
@@ -119,7 +114,6 @@ void dwtnode::lp2x3_encode(bool halfres, bool adapt)
 }
 void dwtnode::lp2x3_decode(char *bitrate, bool halfres, bool adapt)
 {
-  dwtbase = disabled;
   if (halfres)
   {
     rawl_decode(bitrate,halfres,adapt);
