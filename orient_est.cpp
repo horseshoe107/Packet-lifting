@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "base.h"
 #include "dwtnode.h"
+#include "orient.h"
 extern double splines[];
 extern const int splines_extent;
 estorient::estorient(dwtnode *target):dwtnode(target->h,target->w,target->dwtbase)
@@ -82,9 +83,9 @@ void estorient::calc_energies()
           accVenergy += tmpV*tmpV; // accumulate for all pixels in the block
           // calc horizontal high-pass energy
           kernel_selection(y,sigma,vertical,z,sker,ksig);
-          if (x==0) // top edge must be replicated
+          if (x==0) // left edge must be replicated
             tmpH -= filt(splines+sker,y*w+x+1,-z,splines_extent,vertical,ksig);
-          else if (x==w-1) // bottom edge must be replicated
+          else if (x==w-1) // right edge must be replicated
             tmpH -= filt(splines+sker,y*w+x-1,z,splines_extent,vertical,!ksig);
           else
             tmpH -= 0.5*(filt(splines+sker,y*w+x-1,z,splines_extent,vertical,!ksig)
@@ -329,4 +330,293 @@ void estorient::legacy_choose_orient()
     }
   }
   return;
+}
+const double a = 2*log(2.0);
+const double lambda = 100;
+orienttree *root;
+class quadtree_est
+{
+public:
+  quadtree_est(){orientenergy[0]=NULL; orientenergy[1]=NULL;}
+  ~quadtree_est();
+  void init(int seth, int setw, int maxshift);
+  void firstpass_constructtree(int locy, int locx, int depth, orienttree *&node);
+  void secondpass(orienttree *node);
+  void thirdpass(direction pdir, char pshift, orienttree *node);
+  void add_quadtree(int locy, int locx, int depth, orienttree *node, orientation *orientvec);
+//private:
+  int h, w;
+  int size; // next power of 2 that is >= h and w
+  int maxshift, s;
+  double **orientenergy[2]; // 0=vertical transform
+} qtree;
+void quadtree_est::init(int seth, int setw, int setmaxshift)
+{
+  h = seth;
+  w = setw;
+  maxshift = setmaxshift;
+  s = 2*maxshift+1; // number of shifts allowed per direction
+  orientenergy[0] = new double*[h*w];
+  orientenergy[1] = new double*[h*w];
+  for (int n=0;n<(h*w);n++)
+  {
+    orientenergy[0][n] = new double[s];
+    orientenergy[1][n] = new double[s];
+  }
+  for (size=1;size<max(h,w);size<<=1)
+    ;
+  return;
+}
+quadtree_est::~quadtree_est()
+{
+  for (int i=0;i<2;i++)
+    if (orientenergy[i]!=NULL)
+    {
+      for (int n=0;n<(h*w);n++)
+        if (orientenergy[i][n]!=NULL)
+          delete[] orientenergy[i][n];
+      delete[] orientenergy[i];
+    }
+}
+void estorient2::calc_energies()
+{
+  qtree.init(h,w,this->ofield.maxshift);
+  int z, sker; // shift expressed in whole pixels, and fractional (via shift kernel LUT)
+  bool ksig;   // flag indicating positive or negative shift
+  for (int y=0;y<h;y++)
+    for (int x=0;x<w;x++)
+    { // iterate over all orientations
+      for (int sigma=-ofield.maxshift;sigma<=ofield.maxshift;sigma++)
+      {
+        double tmpV, tmpH;
+        tmpV = tmpH = pixels[y*w+x];
+        // calculate the vertical high-pass energy
+        kernel_selection(x,sigma,horizontal,z,sker,ksig);
+        if (y==0) // top edge must be replicated
+          tmpV -= filt(splines+sker,(y+1)*w+x,-z,splines_extent,horizontal,ksig);
+        else if (y==(h-1)) // bottom edge must be replicated
+          tmpV -= filt(splines+sker,(y-1)*w+x,z,splines_extent,horizontal,!ksig);
+        else
+          tmpV -= 0.5*(filt(splines+sker,(y-1)*w+x,z,splines_extent,horizontal,!ksig)
+                      +filt(splines+sker,(y+1)*w+x,-z,splines_extent,horizontal,ksig) );
+        // calc horizontal high-pass energy
+        kernel_selection(y,sigma,vertical,z,sker,ksig);
+        if (x==0) // left edge must be replicated
+          tmpH -= filt(splines+sker,y*w+x+1,-z,splines_extent,vertical,ksig);
+        else if (x==(w-1)) // right edge must be replicated
+          tmpH -= filt(splines+sker,y*w+x-1,z,splines_extent,vertical,!ksig);
+        else
+          tmpH -= 0.5*(filt(splines+sker,y*w+x-1,z,splines_extent,vertical,!ksig)
+                      +filt(splines+sker,y*w+x+1,-z,splines_extent,vertical,ksig) );
+        qtree.orientenergy[0][y*w+x][sigma+ofield.maxshift] = tmpV*tmpV;
+        qtree.orientenergy[1][y*w+x][sigma+ofield.maxshift] = tmpH*tmpH;
+      }
+    }
+  return;
+}
+void quadtree_est::firstpass_constructtree(int locy, int locx, int depth, orienttree *&node)
+{ //determine the appropriate area of pixels
+  int endy = min(h,locy+(size>>depth));
+  int endx = min(w,locx+(size>>depth));
+  int blocksize = max((endy-locy)*(endx-locx),0); // blocksize must be non-negative
+  double b = lambda*blocksize/a; // knee of log-linear function
+  if (node!=NULL)
+    delete node;
+  node = new orienttree(vertical,0,false);
+  node->jprimecand = new jprimevec[2*s];
+  for (int shift=0;shift<=2*maxshift;shift++)
+  {
+    double accE[2]={0.0,0.0};
+    for (int y=locy;y<endy;y++)
+      for (int x=locx;x<endx;x++)
+      {
+        accE[0] += orientenergy[0][y*w+x][shift];
+        accE[1] += orientenergy[1][y*w+x][shift];
+      }
+    node->jprimecand[shift].jprime = (accE[0]<=b)? accE[0] : b*(1+log(accE[0]/b));
+    node->jprimecand[shift+s].jprime = (accE[1]<=b)? accE[1] : b*(1+log(accE[1]/b));
+    if (node->jprimecand[shift].jprime > 1000000000)
+      cerr << "something wrong here" << endl;
+    //node->jprimecand[shift].jprime = accE[0];
+    //node->jprimecand[shift+s].jprime = accE[1];
+  }
+  if ((size>>depth) > 16) // iterate for the children
+  {
+    int d=depth+1;
+    firstpass_constructtree(locy,locx,d,node->children[0]);
+    firstpass_constructtree(locy,locx+(size>>d),d,node->children[1]);
+    firstpass_constructtree(locy+(size>>d),locx,d,node->children[2]);
+    firstpass_constructtree(locy+(size>>d),locx+(size>>d),d,node->children[3]);
+  }
+  else
+    node->leaf = true;
+  return;
+}
+int compute_child_Ls(direction childdir, char childshift, direction parentdir, int parentshift)
+{
+  // error checking
+  if ((childdir==both)||(parentdir==both))
+  {
+    cerr << "direction supplied must be vertical or horizontal only" << endl;
+    exit(1);
+  }
+  if (parentshift==0)
+    if (childshift==0)
+      return 2;
+    else
+      return abs(childshift)+4;
+  if (childdir==parentdir) // code differentially
+    childshift -= parentshift;
+  if (childshift==0)
+    return 3;
+  else
+    return abs(childshift)+4;
+}
+void quadtree_est::secondpass(orienttree *node)
+{
+  if (!(node->leaf))
+  { // process children first
+    secondpass(node->children[0]);
+    secondpass(node->children[1]);
+    secondpass(node->children[2]);
+    secondpass(node->children[3]);
+    for (int shift=0;shift<2*s;shift++) // calculate pruning for every possible shift
+    {
+      double childsum = 0;
+      for (int i=0;i<4;i++)
+        childsum += node->children[i]->Jvec[shift].J;
+      if (childsum < node->jprimecand[shift].jprime)
+      { // combined children's cost is lower so replace
+        node->jprimecand[shift].jprime = childsum;
+        node->jprimecand[shift].prune  = false;
+      }
+      else // prune children
+        node->jprimecand[shift].prune = true;
+    }
+  }
+  node->Jvec = new bestJvec[2*s];
+  for (int pdir=vertical,pindex=0;pdir!=both;pdir++) // iterate over all possible parent shifts
+    for (char pshift=-maxshift;pshift<=maxshift;pshift++,pindex++)
+    {
+      double tmpbestJ = node->jprimecand[maxshift].jprime
+        + lambda*compute_child_Ls(vertical,0,(direction)pdir,pshift);
+      direction tmpbestdir = vertical;
+      char tmpbestshift = 0;
+      // for a fixed parent shift, choose child shift that produces the min J
+      for (int cdir=vertical,cindex=0; cdir!=both; cdir++)
+        for (char cshift=-maxshift;cshift<=maxshift;cshift++,cindex++)
+        {
+          double currJ = node->jprimecand[cindex].jprime + lambda*
+            compute_child_Ls((direction)cdir,cshift,(direction)pdir,pshift);
+          if (currJ<tmpbestJ)
+          {
+            tmpbestJ     = currJ;
+            tmpbestdir   = (direction) cdir;
+            tmpbestshift = cshift;
+          }
+        }
+      node->Jvec[pindex].J=tmpbestJ;
+      node->Jvec[pindex].cdir=tmpbestdir;
+      node->Jvec[pindex].cshift=tmpbestshift;
+    }
+  return;
+}
+void quadtree_est::thirdpass(direction pdir, char pshift, orienttree *node)
+{
+  if (pdir==both)
+  {
+    cerr << "Only vertical and horizontal directions allowed" << endl;
+    exit(1);
+  }
+  // choose best shift for this node
+  int index = pdir*s + pshift + maxshift;
+  node->dir   = (node->Jvec[index].cdir == horizontal);
+  node->shift = node->Jvec[index].cshift;
+  if (!node->leaf) // if the node is already a leaf, finish
+  { // choose whether to prune
+    if (node->jprimecand[node->dir*s + node->shift + maxshift].prune)
+    { // prune
+      delete node->children[0];
+      delete node->children[1];
+      delete node->children[2];
+      delete node->children[3];
+      node->children[0]=NULL;
+      node->children[1]=NULL;
+      node->children[2]=NULL;
+      node->children[3]=NULL;
+      node->leaf = true;
+      return;
+    }
+    else
+    { // otherwise recurse
+      thirdpass((direction)node->dir, node->shift, node->children[0]);
+      thirdpass((direction)node->dir, node->shift, node->children[1]);
+      thirdpass((direction)node->dir, node->shift, node->children[2]);
+      thirdpass((direction)node->dir, node->shift, node->children[3]);
+    }
+  }
+  return;
+}
+void writeshitout(orienttree *node, ofstream &shitout)
+{
+  //if (node->leaf)
+  //{
+    for (int n=0;n<34;n++)
+      shitout << (int) node->jprimecand[n].jprime << " ";
+    //for (int n=0;n<34;n++)
+    //  shitout << (int) node->Jvec[n].J << " ";
+    shitout << endl;
+  //}
+  //else
+    for (int i=0;i<4;i++)
+      if (node->children[i]!=NULL)
+        writeshitout(node->children[i],shitout);
+  return;
+}
+void estorient2::quadtree_estimate()
+{
+  qtree.firstpass_constructtree(0,0,0,root); // construct tree, calculate E + J
+  cout << "cleared first pass" << endl;
+  qtree.secondpass(root); // calculate best shift+J for every parent possibility
+  cout << "cleared second pass" << endl;
+  qtree.thirdpass(vertical, 0, root); // choose shifts and carry out prunings
+  cout << "cleared third pass" << endl;
+  codetree("encodedshiftfield.dat",root);
+  cout << "cleared coding" << endl;
+}
+void quadtree_est::add_quadtree(int locy, int locx, int depth, orienttree *node, orientation *orientvec)
+{
+  if (node->leaf)
+  {
+    int endy = min(h,locy+(size>>depth));
+    int endx = min(w,locx+(size>>depth));
+    for (int y=locy;y<endy;y++) // locy+1 for more visibility in matlab, locy for the correct field
+      for (int x=locx;x<endx;x++)
+      { // there should be no overlap, but if there is always overwrite
+        if (node->dir) // horizontal
+        {
+          orientvec[y*w+x].vshift = node->shift;
+          orientvec[y*w+x].hshift = 0;
+        }
+        else
+        {
+          orientvec[y*w+x].hshift = node->shift;
+          orientvec[y*w+x].vshift = 0;
+        }
+      }
+  }
+  else // (!node->leaf)
+  { // recurse
+    int d=depth+1;
+    add_quadtree(locy,locx,d,node->children[0],orientvec);
+    add_quadtree(locy,locx+(size>>d),d,node->children[1],orientvec);
+    add_quadtree(locy+(size>>d),locx,d,node->children[2],orientvec);
+    add_quadtree(locy+(size>>d),locx+(size>>d),d,node->children[3],orientvec);
+  }
+  return;
+}
+void estorient2::quadtree_flatten()
+{
+  ofield.init_orient(1,8,8,0,0);
+  qtree.add_quadtree(0,0,0,root,ofield.orientvec);
 }

@@ -11,6 +11,17 @@ int estimate(int argc, _TCHAR* argv[])
   est.ofield.orientwrite("sideinf\\lena.dat");
 	return 0;
 }
+int quadtree_estimate(int argc, _TCHAR* argv[])
+{
+  char currfile[] = "D:\\Work\\Images\\bike.pgm";
+  estorient2 est(currfile,w5x3);
+  est.ofield.init_orient(1,8,8,0,0);
+  est.calc_energies();
+  est.quadtree_estimate();
+  est.quadtree_flatten();
+  est.ofield.orientwrite("sideinf\\quadtree_out.dat");
+  return 0;
+}
 int yuvstreamprocess(int argc, _TCHAR* argv[])
 {
   char fname[] = "D:\\Work\\Videos\\MOBILE_352x288_30_orig_01.yuv";
@@ -89,17 +100,17 @@ int orienttest(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
-  char currfile[] = "D:\\Work\\Images\\barbclean.pgm";
+  char currfile[] = "D:\\Work\\Images\\lighthouse.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
   dwtnode in(currfile,w5x3);
-  in.ofield.init_orient("sideinf\\barbclean.dat");
+  in.ofield.init_orient("sideinf\\quadtree_lighthouse_14399.dat");
   //in.ofield.init_orient(4,8,8,4,0);
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=hpfprelift;
+  testmode mode=orient;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
@@ -264,13 +275,8 @@ int _tmain(int argc, _TCHAR* argv[])
   //system("del sideinf\\alpha_transfer.dat");
   //compresstest(argc,argv);
   //orienttest(argc,argv);
-	//estimate(argc,argv);
+  quadtree_estimate(argc,argv);
   //hpftest(argc,argv);
   //yuvstreamprocess(argc,argv);
-
-  dwtnode in("D:\\Work\\Images\\barbclean.pgm",w5x3);
-  in.ofield.init_orient("sideinf\\barbclean.dat");
-  in.ofield.orientencode("test.dat");
-
   return 0;
 }

@@ -1,61 +1,55 @@
 #include "stdafx.h"
 #include "dwtnode.h"
-#define SIZE 1
+#include "orient.h"
 class bitstream_output
 {
 public:
-  bitstream_output(char *filename);
-  bitstream_output(){position=0;}
   ~bitstream_output();
   void open(char *filename);
   void push_data(bool *, int size);
 private:
   int position;
-  char buffer[SIZE];
+  unsigned char buffer;
   ofstream bitsout;
-} bout_global;
-bitstream_output::bitstream_output(char *filename)
-{
-  position=0;
-  for (int i=0;i<SIZE;i++)
-    buffer[i]=0;
-  bitsout.open(filename,ios::binary);
-}
+} bout;
+int bitscount;
 bitstream_output::~bitstream_output()
 {
   if (position != 0)
-    bitsout << buffer[0];
+    bitsout << buffer;
   bitsout.close();
 }
-void bitstream_output::open(char *filename)
+void bitstream_output::open(char *fname)
 {
-  bitsout.open(filename,ios::binary);
+  position=0;
+  buffer=0;
+  bitsout.open(fname,ios::binary);
 }
 void bitstream_output::push_data(bool *bits,int size)
 {
-  if (size <= 0)
+  if ((size<=0)||(size>20))
   {
-    cerr << "bitstream_output cannot accept negative bits of data!" << endl;
+    cerr << size << " number of bits cannot be written" << endl;
     exit(1);
   }
   for (int i=0;i<size;i++)
   {
-    buffer[position/8] |= bits[i] << (position%8); // note the bit must be initialised 0 first
+    buffer |= (bits[i] << (position%8)); // note the bit must be initialised 0 first
     position++;
     if (position%8 == 0)
     { // write out a char
-      bitsout << buffer[0];
-      //cout << (int) buffer[0];
+      bitsout << buffer;
       position = 0;
-      buffer[0]=0; // clear all bits to 0
+      buffer=0; // clear all bits to 0
     }
   }
+  bitscount+=size;
   return;
 }
 // begin by simply encoding each element of the orientation field independently
 void orientationfield::orientencode(char *fname)
 {
-  bitstream_output bout(fname);
+  bout.open(fname);
   bool bits[20];
   int size, shift;
   for (int i=0;i<numblks;i++)
@@ -151,12 +145,12 @@ void recursiveencode(orienttree *node, char parentdata, bool parentdir)
   if (node->leaf)
   {
     bits[size]=1;
-    bout_global.push_data(bits,size+1);
+    bout.push_data(bits,size+1);
   }
   else
   {
     bits[size]=0;
-    bout_global.push_data(bits,size+1);
+    bout.push_data(bits,size+1);
     recursiveencode(node->children[0],node->shift,node->dir);
     recursiveencode(node->children[1],node->shift,node->dir);
     recursiveencode(node->children[2],node->shift,node->dir);
@@ -164,8 +158,10 @@ void recursiveencode(orienttree *node, char parentdata, bool parentdir)
   }
   return;
 }
-void orientationfield::codetree(char *fname)
+void codetree(char *fname, orienttree *root)
 {
-  bout_global.open(fname);
-  recursiveencode(parent,0,true);
+  bitscount=0;
+  bout.open(fname);
+  recursiveencode(root,0,true);
+  cout << bitscount << endl;
 }

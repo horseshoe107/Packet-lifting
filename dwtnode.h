@@ -1,28 +1,16 @@
+#ifndef __MYCLASS_H_INCLUDED__
+#define __MYCLASS_H_INCLUDED__
 enum direction {vertical,horizontal,both};
 direction operator!(direction dir); // (defined in base.cpp)
 enum dwttype {w5x3, w9x7, disabled};
 enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,orient2packet,
   orient2,packliftorient2,hpfprelift,hpfprelift2};
-class orienttree
-{
-public:
-  orienttree(bool setdir, char setshift, bool setleaf)
-  { 
-    dir=setdir;
-    shift=setshift;
-    leaf=setleaf;
-    for (int i=0;i<4;i++)
-      children[i]=NULL;
-  }
-  bool dir;
-  char shift;
-  bool leaf;
-  orienttree *children[4];
-};
+struct orientation{char hshift; char vshift;};
 class orientationfield
 {
   friend class dwtnode;
   friend class estorient;
+  friend class estorient2;
 public:
   // constructor and io functions (defined in support_io.cpp)
   orientationfield(){h=0, w=0, blksz=0, numblks=0, oprec=0,
@@ -52,7 +40,6 @@ public:
   int affine_retrieve(int y, int x, direction dir);
   void transpose();
   // functions for encoding the orientation field
-  void codetree(char *fname);
   void orientencode(char *fname);
 private:  
   int h,w; // note the h,w dimensions must be the same as those
@@ -68,8 +55,7 @@ private:
   // For a block with blksz number of rows, the orientation applies to
   // rows pairs (0,1) through to (blksz-1,blksz). Note that (-1,0)
   // "belongs" to the previous orientation block
-  struct orientation{char hshift; char vshift;} *orientvec;
-  orienttree *parent;
+  orientation *orientvec;
 };
 class dwtnode
 {
@@ -201,3 +187,13 @@ public:
 protected:
   struct tuple{double **hJ; double **vJ;} orientenergy;
 };
+class estorient2 : public dwtnode
+{
+public:
+  estorient2(char* fname,dwttype type):dwtnode(fname,type){}
+  void calc_energies();
+  void quadtree_estimate();
+  void quadtree_flatten();
+protected:
+};
+#endif
