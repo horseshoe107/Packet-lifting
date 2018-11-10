@@ -7,19 +7,19 @@ class orientationfield
   friend class estorient;
   friend class est2orient;
 public:
-  // io functions (defined in support_io.cpp)
+  // constructor and io functions (defined in support_io.cpp)
   orientationfield(){h=0, w=0, blksz=0, numblks=0, oprec=0,
     maxshift=0, fieldtype=blockgrid, orientvec=NULL;};
   void init_orient(int setblksz, int setprec, int setmaxshift,
     int defaulthorzshft=0, int defaultvertshft=0);
   void init_orient(char *fname);
+  void clearfield(int seth, int setw);
+  inline void setaffinefield(){fieldtype = affinegrid;}
   void copy(const orientationfield &);
-  void inherit(orientationfield parent);
+  void inherit(orientationfield &parent);
   ~orientationfield(){if (orientvec!=NULL) delete[] orientvec;}
   void orientwrite(char *fname="orientout.dat");
   // manipulation functions (defined in orient_tx.cpp)
-  void clearfield(int seth, int setw);
-  inline void setaffinefield(){fieldtype = affinegrid;}
   // returns the shift (in 1/oprec units) corresponding to
   // the oriented transform at pixel location (y,x).
   int retrieve(int y, int x, direction=vertical);
@@ -129,7 +129,7 @@ public:
   friend double mse(dwtnode &a, dwtnode &b);
   void shift(int sigma);
   void halveimage(bool);
-  void call_batch(testmode mode, bool halfres);
+  void call_batch(testmode mode, bool halfres, ofstream &fout);
   void rawl_encode(bool halfres=false, bool adapt=false);
   void antialias_encode(bool halfres=false, bool adapt=false);
   void orient_encode(bool halfres=false, bool adapt=false);

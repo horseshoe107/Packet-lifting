@@ -60,7 +60,7 @@
     <Link>
       <OutputFile>$(OutDir)packshift.exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(OutDir)packshift.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>$(TargetDir)$(TargetName).pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
@@ -98,7 +98,7 @@
     <ClCompile Include="hpfprelift.cpp" />
     <ClCompile Include="orient_est.cpp" />
     <ClCompile Include="orient_tx.cpp" />
-    <ClCompile Include="packshift.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="pyramid.cpp" />
     <ClCompile Include="support_io.cpp" />
   </ItemGroup>

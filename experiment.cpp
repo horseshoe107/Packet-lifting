@@ -52,15 +52,22 @@ void dwtnode::halveimage(bool doit)
     this->w>>=1;
   }
 }
-void dwtnode::call_batch(testmode mode, bool halfres)
+// call the appropriate batch file of kdu_compress and kdu_expand commands
+// also writes to fout the tested resolution and dwt filters used
+void dwtnode::call_batch(testmode mode, bool halfres,ofstream &fout)
 {
+  char *dwtmode_strings[]={"w5x3","w9x7","nonstandard dwt"};
   std::stringstream batch;
   if (halfres)
+  {
     batch << "halfres.bat";
+    fout << " half resolution";
+  }
   else if ((mode==pyramid3x2)||(mode==pyramid2x3))
     batch << "pyramid.bat";
   else
     batch << "out.bat";
+  fout << " " << dwtmode_strings[dwtbase] << endl;
   batch <<" "<<h<<" "<<w<<" "<<dwtbase;
   system(batch.str().c_str());
 }

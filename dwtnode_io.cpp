@@ -4,8 +4,8 @@
 #include "dwtnode.h"
 dwtnode::dwtnode(int hset, int wset, dwttype type, bool initzero)
 {
+  ofield.h=h=hset, ofield.w=w=wset, dwtbase=type;
   dwtlevel[vertical]=0, dwtlevel[horizontal]=0;
-  dwtbase=type, h=hset; w=wset;
   pixels = new double[h*w];
   for (int n=0;n<4;n++)
     subbands[n] = NULL;

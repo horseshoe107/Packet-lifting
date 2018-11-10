@@ -32,9 +32,6 @@
     <ClCompile Include="orient_tx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="packshift.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="pyramid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="packlift.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

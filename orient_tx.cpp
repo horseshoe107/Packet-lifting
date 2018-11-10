@@ -311,18 +311,6 @@ extern const int lutprec = 8;
 // clears existing orientation data and sets dimensions
 // to match the image. call this whenever a new image has
 // been loaded, and prior to calling init_orient
-void orientationfield::clearfield(int seth, int setw)
-{
-  h = seth;
-  w = setw;
-  fieldtype = blockgrid;
-  if (orientvec!=NULL)
-  {
-    delete[] orientvec;
-    orientvec = NULL;
-  }
-  return;
-}
 int orientationfield::retrieve(int y, int x, direction dir)
 {
   if (dir == both)
@@ -331,15 +319,16 @@ int orientationfield::retrieve(int y, int x, direction dir)
       << "be vertical or horizontal" << endl;
     exit(1);
   }
-  if (fieldtype == blockgrid)
-    return block_retrieve(y,x,dir);
-  else if (fieldtype == affinegrid)
-    return affine_retrieve(y,x,dir);
-  else // impossible error
+  switch (fieldtype)
   {
-    cerr << "Orientation field type cannot be accessed" << endl;
-    exit(1);
+  case blockgrid:
+    return block_retrieve(y,x,dir);
+  case affinegrid:
+    return affine_retrieve(y,x,dir);
+  default:
+    cerr << "Orientation field type unsupported" << endl;
   }
+  exit(1);
 }
 int orientationfield::affine_retrieve(int y, int x, direction dir)
 {

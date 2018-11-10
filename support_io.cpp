@@ -1,8 +1,9 @@
 #include "stdafx.h"
 #include "base.h"
 #include "dwtnode.h"
-// Initialise the orientation field with preset shifts. This
-// should be called prior to orientation estimation.
+// Initialise the orientation field. This should be called prior
+// to orientation estimation, or can be used to set a simple field
+// with a constant orientation
 void orientationfield::init_orient
 (int setblksz, int setprec, int setmaxshift, int defaulthorzshft, int defaultvertshft)
 {
@@ -49,6 +50,18 @@ void orientationfield::init_orient(char *fname)
   }
   return;
 }
+void orientationfield::clearfield(int seth, int setw)
+{
+  cerr << "Warning: resetting orientation field" << endl;
+  h = seth;
+  w = setw;
+  if (orientvec!=NULL)
+  {
+    delete[] orientvec;
+    orientvec = NULL;
+  }
+  return;
+}
 void orientationfield::copy(const orientationfield &target)
 {
   this->h=target.h;
@@ -68,11 +81,12 @@ void orientationfield::copy(const orientationfield &target)
   }
   else orientvec = NULL;
 }
-void orientationfield::inherit(orientationfield parent)
+void orientationfield::inherit(orientationfield &parent)
 {
-  this->fieldtype = parent.fieldtype;
-  this->maxshift  = parent.maxshift;
+  h=(parent.h+1)/2; w=(parent.w+1)/2;
   this->oprec     = parent.oprec;
+  this->maxshift  = parent.maxshift;
+  this->fieldtype = parent.fieldtype;
   if (parent.blksz == 0)
     return;
   if (parent.blksz >= 2)

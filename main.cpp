@@ -16,11 +16,11 @@ int compresstest(int argc, _TCHAR* argv[])
 {
   char currfile[] = "D:\\Work\\Images\\barbara.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
-  dwtnode in(currfile,w9x7);
+  dwtnode in(currfile,w5x3);
   in.ofield.init_orient("sideinf\\barb4.dat");
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
-  bool adapt=false; // select adaptive mode
+  bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
   testmode mode=orient;
@@ -34,17 +34,15 @@ int compresstest(int argc, _TCHAR* argv[])
     decode_ptr = &dwtnode::rawl_decode;
     if (halfres)
     {
-      dout << " half resolution";
       ref.analysis(both);
     }
     break;
   case packlift:
     encode_ptr = &dwtnode::antialias_encode;
     decode_ptr = &dwtnode::antialias_decode;
-    dout << "Antialiased MSEs";
+    dout << "Packet lifting MSEs";
     if (halfres)
     {
-      dout << " half resolution";
       decode_ptr = &dwtnode::rawl_decode;
       ref.analysis(both);
       ref.extract_subband(0);
@@ -65,7 +63,6 @@ int compresstest(int argc, _TCHAR* argv[])
     decode_ptr = &dwtnode::lp3x2_decode;
     if (halfres)
     {
-      dout << " half resolution";
       ref.lp3x2_halfres(); // replace image with laplacian half res
       decode_ptr = &dwtnode::rawl_decode;
     }
@@ -76,7 +73,6 @@ int compresstest(int argc, _TCHAR* argv[])
     decode_ptr = &dwtnode::lp2x3_decode;
     if (halfres)
     {
-      dout << " half resolution";
       ref.lp2x3_halfres(); // replace image with laplacian half res
       decode_ptr = &dwtnode::rawl_decode;
     }
@@ -87,32 +83,29 @@ int compresstest(int argc, _TCHAR* argv[])
 		decode_ptr = &dwtnode::orient_decode;
     if (halfres)
     {
-      dout << " half resolution";
       decode_ptr = &dwtnode::rawl_decode;
       ref.oriented_analysis(both);
-      cerr << "not yet implemented!";
+      cerr << " half res not yet implemented!";
       exit(1);
     }
     break;
   case aaorient:
     encode_ptr = &dwtnode::aa_orient_encode;
-    dout << "Oriented + antialiased MSEs" << endl;
+    dout << "Oriented + antialiased MSEs";
+    decode_ptr = &dwtnode::aa_orient_decode;
     if (halfres)
     {
-      dout << " half resolution";
       decode_ptr = NULL;
-      cerr << "not yet implemented!";
+      cerr << " half res not yet implemented!";
       exit(1);
     }
-    else  decode_ptr = &dwtnode::aa_orient_decode;
     break;
   default:
     exit(1);
   }
-  dout << endl;
   {
     (in.*encode_ptr)(halfres,adapt);
-    in.call_batch(mode,halfres); // run kdu_compress
+    in.call_batch(mode,halfres,dout); // run kdu_compress
     in.halveimage(halfres);
     //// test perfect reconstruction
     (in.*decode_ptr)("",adapt);
@@ -170,17 +163,15 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
     decode_ptr = &dwtnode::rawl_decode;
     if (halfres)
     {
-      dout << " half resolution";
       ref.analysis(both);
     }
     break;
   case packlift:
     encode_ptr = &dwtnode::antialias_encode;
     decode_ptr = &dwtnode::antialias_decode;
-    dout << "Antialiased MSEs";
+    dout << "Packet lifting MSEs";
     if (halfres)
     {
-      dout << " half resolution";
       decode_ptr = &dwtnode::rawl_decode;
       ref.analysis(both);
       ref.extract_subband(0);
@@ -201,10 +192,9 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
 		decode_ptr = &dwtnode::orient_decode;
     if (halfres)
     {
-      dout << " half resolution";
       decode_ptr = &dwtnode::rawl_decode;
       ref.oriented_analysis(both);
-      cerr << "not yet implemented!";
+      cerr << " half res not yet implemented!";
       exit(1);
     }
     break;
@@ -214,17 +204,15 @@ int hpfcompresstest(int argc, _TCHAR* argv[])
     decode_ptr = &dwtnode::hpfprelift_decode;
     if (halfres)
     {
-      dout << " half resolution";
       decode_ptr = &dwtnode::rawl_decode;
       ref.hpf_oriented_analysis(both,adapt);
     }
     break;
   default: exit(1);
   }
-  dout << endl;
   {
     (in.*encode_ptr)(halfres,adapt);
-    in.call_batch(mode,halfres); // run kdu_compress
+    in.call_batch(mode,halfres,dout); // run kdu_compress
     in.halveimage(halfres);
     //// test perfect reconstruction
     (in.*decode_ptr)("",adapt);
@@ -279,33 +267,37 @@ int hpftest(int argc, _TCHAR* argv[])
 }
 int orienttest(int argc, _TCHAR* argv[])
 {
-	enum testmode {orient, recon1, recon2, recon3} mode = orient;
-  //char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-	char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
-  dwtnode in(currfile,w5x3);
-  //in.ofield.init_orient("sideinf\\barb4.dat");
-	in.ofield.init_orient(4,8,8,4,0);
-	in.ofield.setaffinefield();
-  switch (mode)
+	enum testmode {orient, recon1, recon2, recon3} mode;
+  char currfile[] = "D:\\Work\\Images\\barbara.pgm";
+	//char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
+  for (int i=0;i<3;i++)
   {
-  case orient:
-		in.oriented_analysis(both);
-		in.pgmwrite("LL1.pgm");
-    break;
-	case recon1: // reconstruct w/ all subbands
-		in.oriented_packet_analysis(both);
-		in.oriented_synthesis(horizontal);
-		in.oriented_synthesis(vertical);
-		in.pgmwrite("LL1recon1.pgm");
-		break;
-	case recon2: // reconstruct only w/ LL1
-		in.oriented_packet_analysis(both);
-		in.extract_subband(0);
-		in.subbands[0]->oriented_synthesis(both);
-		in.subbands[0]->pgmwrite("LL1recon2.pgm");
-		break;
-	case recon3: // reconstruct w/ LL1 and lower res ofield
-		break;
+    mode = (testmode)i;
+    dwtnode in(currfile,w5x3);
+    in.ofield.init_orient("sideinf\\barb4.dat");
+    //in.ofield.init_orient(4,8,8,4,0);
+    in.ofield.setaffinefield();
+    switch (mode)
+    {
+    case orient:
+		  in.oriented_analysis(both);
+		  in.pgmwrite("LL1.pgm");
+      break;
+	  case recon1: // reconstruct w/ all subbands
+		  in.oriented_packet_analysis(both);
+		  in.oriented_synthesis(horizontal);
+		  in.oriented_synthesis(vertical);
+		  in.pgmwrite("LL1recon1.pgm");
+		  break;
+	  case recon2: // reconstruct only w/ LL1
+		  in.oriented_packet_analysis(both);
+		  in.extract_subband(0);
+		  in.subbands[0]->oriented_synthesis(both);
+		  in.subbands[0]->pgmwrite("LL1recon2.pgm");
+		  break;
+	  case recon3: // reconstruct w/ LL1 and lower res ofield
+		  break;
+    }
   }
 	return 0;
 }
@@ -315,8 +307,9 @@ int _tmain(int argc, _TCHAR* argv[])
   //system("del sideinf\\alpha_cancel.dat");
   //system("del sideinf\\cancel_energy.dat");
   //compresstest(argc,argv);
+  orienttest(argc,argv);
 	//estimate(argc,argv);
   //hpftest(argc,argv);
-  hpfcompresstest(argc,argv);
+  //hpfcompresstest(argc,argv);
   return 0;
 }
