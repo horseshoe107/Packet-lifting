@@ -86,6 +86,7 @@ public:
   void transpose();
   double filt(double *f, int pixelloc, int offset, int fN,
     direction, bool forward=true);
+  double filt3x3abs(int y, int x);
   // ordinary transform functions (defined in dwtnode_tx.cpp)
   void apply_LHlift(double, direction);
   void apply_HLlift(double, direction);
@@ -103,7 +104,7 @@ public:
   void lp2x3_halfres();
   void lp2x3_encode(bool halfres, bool adapt);
   void lp2x3_decode(char *bitrate, bool halfres, bool adapt);
-  // antialiasing transform (defined in antialias_tx.cpp)
+  // packet lifting functions (defined in packlift.cpp)
   friend void packet_transfer(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
   friend void packet_cancel(dwtnode &donor, dwtnode &receiver,
@@ -112,8 +113,7 @@ public:
     bool analysis, direction);
   friend void packswap(dwtnode &donor, dwtnode &receiver,
     bool analysis, bool adaptive, direction);
-	friend void average3x3abs(dwtnode &in, dwtnode &out);
-  friend double alphaTlookup(dwtnode &hE, dwtnode &donorE, int y, int x, direction);
+  friend double alphaTlookup(double hE, dwtnode &donorE, int y, int x, direction);
   void packlift(direction dim, bool analysis, bool adaptive=false);
   // oriented transform functions (defined in orient_tx.cpp)
 	void kernel_selection(int n, int sigma, direction, int &intshift,
@@ -124,8 +124,9 @@ public:
 	void oriented_synthesis(direction);
 	void oriented_packet_analysis(direction);
 	void oriented_packet_synthesis(direction);
-  // defined in hpfprelift.cpp
-  void hpf_HLlift(double a, direction dir, bool adaptive);
+  // (defined in hpfprelift.cpp)
+  void hpf_HLlift(double a, direction dir, bool adapt);
+  void hpf_update_HLlift(double a, direction dir, bool adapt);
   void hpf_oriented_analysis(direction, bool adaptive=true);
   void hpf_oriented_synthesis(direction, bool adaptive=true);
   // experiment testing functions (defined in experiment.cpp)

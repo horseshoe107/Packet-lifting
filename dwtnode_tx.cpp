@@ -144,8 +144,8 @@ void dwtnode::transpose()
 // out = sum_i sig[n+i]*f[-i]
 // If the boolean argument forward is set false then the filter is reversed:
 // out = sum_i sig[n+i]*f[i]
-// This has no effect when f is a zero phase filter, but may be useful for reversing
-// the direction of shift filters.
+// This makes no difference when f is a zero phase filter, but may be useful for
+// reversing the direction of shift filters.
 // Pixel values beyond the boundary are extrapolated by constant extension. For
 // an image that is not in baseband (if dwtlevel[dir] != 0), the last lowpass
 // coefficient will be replicated, while the highpass coefficients will be set to 0.
@@ -187,6 +187,34 @@ double dwtnode::filt(double *f, int n, int offset, int N, direction dir, bool fo
   }
   for (int i=-L;i<=U;i++)
     out += sig[i*skip]*f[fsign*(i-offset)];
+  return out;
+}
+// Performs 3x3 averaging filter on the magnitude of the pixel values
+// The 1-dimension filter coefficients are [1/4 1/2 1/4]
+// Pixel values beyond the boundary are extrapolated by constant extension
+double dwtnode::filt3x3abs(int y, int x)
+{
+  if ((y<0)||(y>=h)||(x<0)||(x>=w))
+  {
+    cerr << "filt3x3abs error: y,x outside boundaries of the image" << endl;
+    exit(1);
+  }
+  int y0=(y==0)?0:y-1;
+  int y1=(y==(h-1))?h-1:y+1;
+  int x0=(x==0)?0:x-1;
+  int x1=(x==(w-1))?w-1:x+1;
+  double out = abs(pixels[y0*w+x0]);
+  out += abs(pixels[y0*w+x1]);
+  out += abs(pixels[y1*w+x0]);
+  out += abs(pixels[y1*w+x1]);
+  out *= 0.5;
+  out += abs(pixels[y0*w+x]);
+  out += abs(pixels[y*w+x0]);
+  out += abs(pixels[y*w+x1]);
+  out += abs(pixels[y1*w+x]);
+  out *= 0.5;
+  out += abs(pixels[y*w+x]);
+  out *= 0.25;
   return out;
 }
 void dwtnode::apply_LHlift(double a, direction dir)

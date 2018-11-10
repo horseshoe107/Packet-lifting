@@ -84,7 +84,6 @@ packlift_filters::packlift_filters(char *fname)
   offset >>= 1;
   //offset = -1; // set this to emulate old results
 }
-int globalcount; // keeps a count of which packet pair is being swapped
 void packet_transfer(dwtnode &donor, dwtnode &receiver,
           bool analysis, direction dir)
 {
@@ -168,48 +167,23 @@ int conv(packlift_filters &f, double *hconv)
   }
   return convN/2;
 }
-void average3x3abs(dwtnode &band, dwtnode &out)
-{
-	if ((band.h!=out.h)||(band.w!=out.w))
-	{
-		cerr << "Bands must have identical dimensions" << endl;
-	}
-	for (int y=1;y<band.h-1;y++)
-		for (int x=1;x<band.w-1;x++)
-		{
-			double tmp = abs(band.pixels[(y-1)*band.w+(x-1)]);
-			tmp += abs(band.pixels[(y-1)*band.w+(x+1)]);
-			tmp += abs(band.pixels[(y+1)*band.w+(x-1)]);
-			tmp += abs(band.pixels[(y+1)*band.w+(x+1)]);
-			tmp *= 0.5;
-			tmp += abs(band.pixels[(y-1)*band.w+x]);
-			tmp += abs(band.pixels[y*band.w+(x-1)]);
-			tmp += abs(band.pixels[y*band.w+(x+1)]);
-			tmp += abs(band.pixels[(y+1)*band.w+x]);
-			tmp *= 0.5;
-			tmp += abs(band.pixels[y*band.w+x]);
-			tmp *= 0.25;
-			out.pixels[y*out.w+x] = tmp;
-		}
-}
-double alphaTlookup(dwtnode &hE,dwtnode &donorE,int y,int x,direction dir)
+double alphaTlookup(double hE,dwtnode &donorE,int y,int x,direction dir)
 {
   const double T = 1.0;
   const double beta = 0.1;
 	const double Tdonor = 2.0;
-  double hEp = hE.pixels[y*hE.w+x]; // aliased energy
-  double refE = beta*donorE.pixels[y*donorE.w+x] + T; //
+  double refE = beta*donorE.pixels[y*donorE.w+x] + T;
   double alpha;
-  if (hEp < refE)
-    alpha = 0;
-  else if (0.75*hEp < refE)
-    alpha = 0.25;
-  else if (0.5*hEp < refE)
-    alpha = 0.5;
-  else if (0.25*hEp < refE)
-    alpha = 0.75;
-  else
+  if (hE > 4*refE)
     alpha = 1.0;
+  else if (hE > 2*refE)
+    alpha = 0.75;
+  else if (hE > 1.33333333*refE)
+    alpha = 0.5;
+  else if (hE > refE)
+    alpha = 0.25;
+  else
+    alpha = 0;
 	// attenuate alpha if surrounding donor energy is low
 	// we only want to do packet lifting in large regions of aliasing
 	// to avoid creating ringing artifacts
@@ -236,13 +210,6 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
   int ystart, yend, xstart, xend, y, x;
   double *hee = new double[f.htN+f.hcN-1];
   int heeN = conv(f,hee);
-  fstream fio("sideinf\\alpha_transfer.dat",ios::in|ios::out|ios::binary|ios::app);
-  if (!analysis)
-  {
-    char c;
-    for (int n=0;n<globalcount;n++)
-      while((c=fio.get())!='\n') ; // skip lines
-  }
   // Set boundaries for filtering
   if (dir==horizontal)
   {
@@ -261,42 +228,21 @@ void packet_transfer_adaptive(dwtnode &donor, dwtnode &receiver,
   dwtnode hee_output(donor.h,donor.w,disabled,true);
   dwtnode htE(donor.h,donor.w,disabled,true);
   dwtnode donorE(donor.h,donor.w,disabled,true);
-  dwtnode averaged_output(donor.h,donor.w,disabled,true);
-  dwtnode alpha_map(donor.h,donor.w,disabled,true);
-  for (y=ystart;y<yend;y++)
-    for (x=xstart;x<xend;x++)
+  for (y=0;y<donor.h;y++)
+    for (x=0;x<donor.w;x++)
     {
       hee_output.pixels[y*donor.w+x] = donor.filt(&hee[heeN],y*donor.w+x,0,heeN,dir,true);
+      donorE.pixels[y*donorE.w+x] = donor.filt3x3abs(y,x);
     }
-	average3x3abs(donor,donorE);
-	average3x3abs(hee_output,htE);
   for (y=ystart+1;y<yend-1;y++)
     for (x=xstart+1;x<xend-1;x++)
     {
-      double alpha;
+      double alpha, htE;
+      htE = hee_output.filt3x3abs(y,x);
       alpha = alphaTlookup(htE,donorE,y,x,dir);
-      alpha_map.pixels[y*alpha_map.w+x] = alpha*128;
-      htE.pixels[y*htE.w+x] *= 8;
-      donorE.pixels[y*donorE.w+x] *= 8;
-      //if (analysis)
-      //  fio << alpha << " ";
-      //else
-      //  fio >> alpha;
       receiver.pixels[acc_shft+y*receiver.w+x] += sign*alpha*
         donor.filt(&f.ht_coeff[N],y*donor.w+x,0,N,dir,true);
     }
-  fio << endl;
-  fio.close();
-  //if ((globalcount==0)&&(analysis))
-  //{
-  //  htE.pgmwrite("tmp\\htE.pgm");
-  //  donorE.pgmwrite("tmp\\donorE.pgm");
-  //  alpha_map.pgmwrite("tmp\\alphaT.pgm");
-  //}
-  //if ((globalcount==2)&&(analysis))
-  //{
-  //  alpha_map.pgmwrite("tmp\\alphaT2.pgm");
-  //}
   return;
 }
 // Carries out 2 lifting steps between a pair of subbands, with filters
@@ -320,23 +266,15 @@ void packswap(dwtnode &donor, dwtnode &receiver,
     else
       packet_transfer(donor, receiver, analysis, dir);
   }
-  globalcount++;
-  if (globalcount==4)
-    globalcount=0;
   return;
 }
 // Perform packet lifting between the appropriate subbands
-// It is assumed that the required child bands - eg. LL1, HL1
-// and LH1 - have already been extracted, and additionally that
-// the child bands have already been analysed into an interleaved
-// state. Deeper child subband extraction is performed by the function.
+// Child bands (LL1, HL1 and LH1) must be analysed down to dwtlevel 1 in
+// the direction of the packet lifting. After packet lifting, the dwtnode
+// structure will be restored to this structure before returning.
 void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
 {
   bool horzsecond = false;
-  if (analysis)
-    globalcount=0;
-  else
-    globalcount=2;
   subbands[0]->extract_subband(3); // the LL-HH packet is always used
   if ((dim == horizontal)||(dim == both))
   {
