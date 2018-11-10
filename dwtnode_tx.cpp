@@ -169,7 +169,7 @@ double dwtnode::filt(double *f, int n, int offset, int N, direction dir, bool fo
   int Ubuf = (dir==vertical)? h-1-n/w : w-1-n%w;
   int L=N-offset, U=N+offset; // boundaries of filter support
   int s = 1<<dwtlevel[dir]; // step size when filtering over boundary edges
-  int Umod = ((((Lbuf+Ubuf+s-1)>>dwtlevel[dir])<<dwtlevel[dir]) - Lbuf);
+  int Umod = ((((Lbuf+Ubuf+s)>>dwtlevel[dir])<<dwtlevel[dir]) - Lbuf);
   double out=0;
   if (L > Lbuf) // extension of signal on left/top needed
   {
