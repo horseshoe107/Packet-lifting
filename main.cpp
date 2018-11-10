@@ -2,14 +2,31 @@
 #include "dwtnode.h"
 int estimate(int argc, _TCHAR* argv[])
 {
-	char currfile[] = "D:\\Work\\Images\\barbclean.pgm";
+	char currfile[] = "D:\\Work\\Images\\lena.pgm";
   estorient est(currfile,w5x3);
   est.init_orient(4,8,16);
   est.calc_energies();
   //est.legacy_choose_orient();
   est.choose_orient();
-  est.ofield.orientwrite("sideinf\\test.dat");
+  est.ofield.orientwrite("sideinf\\lena.dat");
 	return 0;
+}
+int yuvstreamprocess(int argc, _TCHAR* argv[])
+{
+  char fname[] = "D:\\Work\\Videos\\MOBILE_352x288_30_orig_01.yuv";
+  ifstream fin(fname,ios::binary);
+  ofstream half("mobile_176x144.yuv",ios::binary);
+  dwtnode node(288,352,w5x3);
+  node.yuvstreamread(fin);
+  node.pgmwrite("mobile0.pgm");
+  //while (node.yuvstreamread(fin))
+  //{
+  //  //cout << '.';
+  //  node.analysis(both);
+  //  node.yuvstreamwrite(half);
+  //  //node.pgmwrite("test.pgm");
+  //}
+  return 0;
 }
 int shifttest(int argc, _TCHAR* argv[])
 {
@@ -72,21 +89,17 @@ int orienttest(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
-  //char currfile[] = "D:\\Work\\Images\\barbara.pgm";
-  char currfile[] = "D:\\Work\\Images\\aspen0.pgm";
-  //char currfile[] = "D:\\Work\\Images\\nonstandard\\vert_generated.pgm";
-  //char currfile[] = "D:\\Work\\Images\\nonstandard\\thick_vert.pgm";
+  char currfile[] = "D:\\Work\\Images\\barbclean.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
   dwtnode in(currfile,w5x3);
-  //in.ofield.init_orient("sideinf\\barb4.dat");
-  in.ofield.init_orient("sideinf\\aspen0.dat");
+  in.ofield.init_orient("sideinf\\barbclean.dat");
   //in.ofield.init_orient(4,8,8,4,0);
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
   bool halfres=false; // compute mses for half resolution instead
   bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=orient;
+  testmode mode=hpfprelift;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
@@ -96,9 +109,7 @@ int compresstest(int argc, _TCHAR* argv[])
     dout << "Ordinary dwt MSEs";
     decode_ptr = &dwtnode::rawl_decode;
     if (halfres)
-    {
       ref.analysis(both);
-    }
     break;
   case packlift:
     encode_ptr = &dwtnode::packlift_encode;
@@ -124,27 +135,21 @@ int compresstest(int argc, _TCHAR* argv[])
     dout << "Flierl pyramid MSEs";
     decode_ptr = &dwtnode::lp3x2_decode;
     if (halfres)
-    {
       ref.lp3x2_halfres(); // replace image with laplacian half res
-    }
     break;
   case pyramid2x3:
     encode_ptr = &dwtnode::lp2x3_encode;
     dout << "Tran pyramid MSEs";
     decode_ptr = &dwtnode::lp2x3_decode;
     if (halfres)
-    {
       ref.lp2x3_halfres(); // replace image with laplacian half res
-    }
     break;
   case orient:
     encode_ptr = &dwtnode::orient_encode;
     dout << "Oriented wavelet MSEs";
 		decode_ptr = &dwtnode::orient_decode;
     if (halfres)
-    {
       ref.oriented_analysis(both);
-    }
     break;
   case orient2packet:
     encode_ptr = &dwtnode::orient2_packet_encode;
@@ -164,9 +169,7 @@ int compresstest(int argc, _TCHAR* argv[])
     dout << "2 level oriented MSEs";
     decode_ptr = &dwtnode::orient2_decode;
     if (halfres)
-    {
       ref.oriented_analysis(both);
-    }
     break;
   case packliftorient2:
     encode_ptr = &dwtnode::packlift_orient2_encode;
@@ -259,9 +262,15 @@ int hpftest(int argc, _TCHAR* argv[])
 int _tmain(int argc, _TCHAR* argv[])
 {
   //system("del sideinf\\alpha_transfer.dat");
-  compresstest(argc,argv);
+  //compresstest(argc,argv);
   //orienttest(argc,argv);
 	//estimate(argc,argv);
   //hpftest(argc,argv);
+  //yuvstreamprocess(argc,argv);
+
+  dwtnode in("D:\\Work\\Images\\barbclean.pgm",w5x3);
+  in.ofield.init_orient("sideinf\\barbclean.dat");
+  in.ofield.orientencode("test.dat");
+
   return 0;
 }

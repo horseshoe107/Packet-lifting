@@ -17,21 +17,20 @@ static double g0_coeffs[] = {0.5, 1, 0.5};
 #define G0_EXTENT 1
 static double g1_coeffs[] = {-0.25, -0.5, 1.5, -0.5, -0.25};
 #define G1_EXTENT 2
-static double hpf_coeffs[] = {-2,0,4,3,-5,-19,38,-19,-5,3,4,0,-2}; // divided by 64 in initialise_hpf()
+static double hpf_coeffs[] = {-2.0/64,0,4.0/64,3.0/64,-5.0/64,
+  -19.0/64,38.0/64,-19.0/64,-5.0/64,3.0/64,4.0/64,0,-2.0/64};
 #define HPF_EXTENT 6
+//static double hpf_coeffs[] = {-0.079,0.1177,0.005,0.0418,-0.4092,
+//  0.6475,-0.4092,0.0418,0.005,0.1177,-0.079};
+//static double hpf_coeffs[] = {-0.035,0.073,0.048,-0.04447,-0.33545,
+//    0.58775,-0.33545,-0.04447,0.048,0.073,-0.035};
+//#define HPF_EXTENT 5
 static double *g0_filter = g0_coeffs + G0_EXTENT;
 static double *g1_filter = g1_coeffs + G1_EXTENT;
 static double *hpf_h0_filter;
 static const int hpf_h0_extent = H0_EXTENT+HPF_EXTENT;
 static double *hpf_inband_lut;
 #define INBAND_EXTENT 8 // sets the limit on length of the inband filters
-double *initialise_hpf()
-{
-  double *filtcentre = hpf_coeffs+HPF_EXTENT;
-  for (int n=-HPF_EXTENT;n<=HPF_EXTENT;n++)
-    filtcentre[n] /= 64;
-  return filtcentre;
-}
 //interleave using the even-indexed samples from f0 and odd-indexed samples from f1.
 //f0 and f1 should point to the centre of the filter, where the length of the filters
 //are 2*k0+1 and 2*k1+2 respectively.
@@ -61,7 +60,7 @@ void interleave_filters(double *f0, int k0, double *f1, int k1,
 }
 hpfprelift_init::hpfprelift_init()
 {
-  double *hpf_filter = initialise_hpf();
+  double *hpf_filter = hpf_coeffs + HPF_EXTENT;
   hpf_h0_filter = convolve(hpf_filter, HPF_EXTENT, h0_coeffs+H0_EXTENT, H0_EXTENT);
 	const int g0_hpf_h0_extent = hpf_h0_extent + G0_EXTENT;
   const int g1_hpf_h0_extent = hpf_h0_extent + G1_EXTENT;

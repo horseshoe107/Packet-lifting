@@ -3,6 +3,22 @@ direction operator!(direction dir); // (defined in base.cpp)
 enum dwttype {w5x3, w9x7, disabled};
 enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,orient2packet,
   orient2,packliftorient2,hpfprelift,hpfprelift2};
+class orienttree
+{
+public:
+  orienttree(bool setdir, char setshift, bool setleaf)
+  { 
+    dir=setdir;
+    shift=setshift;
+    leaf=setleaf;
+    for (int i=0;i<4;i++)
+      children[i]=NULL;
+  }
+  bool dir;
+  char shift;
+  bool leaf;
+  orienttree *children[4];
+};
 class orientationfield
 {
   friend class dwtnode;
@@ -35,7 +51,10 @@ public:
   }
   int affine_retrieve(int y, int x, direction dir);
   void transpose();
-private:
+  // functions for encoding the orientation field
+  void codetree(char *fname);
+  void orientencode(char *fname);
+private:  
   int h,w; // note the h,w dimensions must be the same as those
            // of the dwtnode container
   int blksz, numblks;
@@ -50,6 +69,7 @@ private:
   // rows pairs (0,1) through to (blksz-1,blksz). Note that (-1,0)
   // "belongs" to the previous orientation block
   struct orientation{char hshift; char vshift;} *orientvec;
+  orienttree *parent;
 };
 class dwtnode
 {

@@ -90,6 +90,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="orient_coding.cpp" />
     <ClCompile Include="packlift.cpp" />
     <ClCompile Include="base.cpp" />
     <ClCompile Include="dwtnode_io.cpp" />
