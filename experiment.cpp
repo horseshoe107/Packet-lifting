@@ -85,7 +85,7 @@ void dwtnode::call_batch(testmode mode, char *Cdecomp, bool halfres, ofstream &f
       ; // skip the first level of Cdecomp
     Cdecomp++;
   }
-  else if ((mode==pyramid3x2)||(mode==pyramid2x3))
+  else if ((mode==pyramid)||(mode==pyramid3x2)||(mode==pyramid2x3))
     batch << "pyramid.bat";
   else
     batch << "out.bat";
@@ -134,6 +134,14 @@ void dwtnode::packlift_encode(bool halfres, bool adapt)
   rawlwrite("tmp\\out.rawl");
   return;
 }
+//void dwtnode::packlift_encode(bool halfres, bool adapt)
+//{
+//  packlift_analysis(both,adapt);
+//  if (!halfres)
+//    synthesis(both);
+//  rawlwrite("tmp\\out.rawl");
+//  return;
+//}
 void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
@@ -153,6 +161,44 @@ void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
   synthesis(both);
   return;
 }
+//void dwtnode::packlift_decode(char *bitrate, bool halfres, bool adapt)
+//{
+//  rawl_decode(bitrate,halfres,adapt);
+//  if (!halfres)
+//  {
+//    analysis(both);
+//    packlift_synthesis(both,adapt);
+//  }
+//	return;
+//}
+void dwtnode::packlift_2layer_encode(bool quartres, bool adapt)
+{
+  packlift_analysis(both,adapt);
+  extract_subband(0);
+  subbands[0]->packlift_analysis(both,adapt);
+  subbands[0]->synthesis(both);
+  if (quartres)
+  {
+    subbands[0]->rawlwrite("tmp\\out.rawl");
+    return;
+  }
+  interleave();
+  synthesis(both);
+  rawlwrite("tmp\\out.rawl");
+  return;
+}
+void dwtnode::packlift_2layer_decode(char *bitrate, bool quartres, bool adapt)
+{
+  rawl_decode(bitrate,quartres,adapt);
+  if (quartres) return;
+  analysis(both);
+  extract_subband(0);
+  subbands[0]->analysis(both);
+  subbands[0]->packlift_synthesis(both,adapt);
+  interleave();
+  packlift_synthesis(both,adapt);
+  return;
+}
 void dwtnode::orient_encode(bool halfres, bool adapt)
 {
   oriented_analysis(both);
@@ -164,10 +210,11 @@ void dwtnode::orient_encode(bool halfres, bool adapt)
 void dwtnode::orient_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
-  if (halfres)
-    return;
-  analysis(both);
-  oriented_synthesis(both);
+  if (!halfres)
+  {
+    analysis(both);
+    oriented_synthesis(both);
+  }
   return;
 }
 void dwtnode::orient2_packet_encode(bool halfres, bool adapt)
@@ -197,7 +244,7 @@ void dwtnode::orient2_packet_decode(char *bitrate, bool halfres, bool adapt)
   oriented_packet_synthesis(both);
   return;
 }
-void dwtnode::orient2_encode(bool halfres, bool adapt)
+void dwtnode::orient_2layer_encode(bool halfres, bool adapt)
 {
   oriented_analysis(both);
   extract_subband(0); // ofield automatically inherited
@@ -213,7 +260,7 @@ void dwtnode::orient2_encode(bool halfres, bool adapt)
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::orient2_decode(char *bitrate, bool halfres, bool adapt)
+void dwtnode::orient_2layer_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
   analysis(both);
@@ -297,12 +344,12 @@ void dwtnode::hpfprelift_decode(char *bitrate, bool halfres, bool adapt)
   }
 	return;
 }
-void dwtnode::hpfprelift2_encode(bool halfres, bool adapt)
+void dwtnode::hpfprelift_2layer_encode(bool halfres, bool adapt)
 {
   hpf_oriented_analysis(both,adapt);
   extract_subband(0); // ofield automatically inherited
-  //subbands[0]->hpf_oriented_analysis(both,adapt);
-  subbands[0]->oriented_analysis(both);
+  subbands[0]->hpf_oriented_analysis(both,adapt);
+  //subbands[0]->oriented_analysis(both);
   subbands[0]->synthesis(both);
   if (halfres)
   {
@@ -314,7 +361,7 @@ void dwtnode::hpfprelift2_encode(bool halfres, bool adapt)
   rawlwrite("tmp\\out.rawl");
   return;
 }
-void dwtnode::hpfprelift2_decode(char *bitrate, bool halfres, bool adapt)
+void dwtnode::hpfprelift_2layer_decode(char *bitrate, bool halfres, bool adapt)
 {
   rawl_decode(bitrate,halfres,adapt);
   analysis(both);
@@ -325,8 +372,8 @@ void dwtnode::hpfprelift2_decode(char *bitrate, bool halfres, bool adapt)
   }
   extract_subband(0);
   subbands[0]->analysis(both);
-  //subbands[0]->hpf_oriented_synthesis(both,adapt);
-  subbands[0]->oriented_synthesis(both);
+  subbands[0]->hpf_oriented_synthesis(both,adapt);
+  //subbands[0]->oriented_synthesis(both);
   interleave();
   hpf_oriented_synthesis(both,adapt);
   return;

@@ -3,8 +3,10 @@
 enum direction {vertical,horizontal,both};
 direction operator!(direction dir); // (defined in base.cpp)
 enum dwttype {w5x3, w9x7, disabled};
-enum testmode {base,pyramid,pyramid3x2,pyramid2x3,packlift,orient,orient2packet,
-  orient2,packliftorient2,hpfprelift,hpfprelift2};
+enum testmode {base,pyramid,pyramid3x2,pyramid2x3,pyramid2x3_2layer,
+  packlift,packlift_2layer,packliftorient2,
+  orient,orient2packet,orient_2layer,
+  hpfprelift,hpfprelift_2layer};
 class orientation
 {
 public:
@@ -135,6 +137,8 @@ public:
   void lp2x3_halfres();
   void lp2x3_encode(bool halfres, bool adapt);
   void lp2x3_decode(char *bitrate, bool halfres, bool adapt);
+  void lp2x3_2layer_encode(bool quartres, bool adapt);
+  void lp2x3_2layer_decode(char *bitrate, bool quartres, bool adapt);
   // packet lifting functions (defined in packlift.cpp)
   friend void packet_transfer(dwtnode &donor, dwtnode &receiver,
     bool analysis, direction);
@@ -146,6 +150,8 @@ public:
     bool analysis, bool adaptive, direction);
   friend double alphaTlookup(double hE, dwtnode &donorE, int y, int x, direction);
   void packlift(direction dim, bool analysis, bool adaptive=false);
+  void packlift_analysis(direction dim, bool adaptive=false);
+  void packlift_synthesis(direction dim, bool adaptive=false);
   // oriented transform functions (defined in orient_tx.cpp)
 	void kernel_selection(int n, int sigma, direction, int &intshift,
                         int &LUT_index, bool &shiftdirection);
@@ -169,18 +175,20 @@ public:
   void rawl_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void packlift_encode(bool halfres=false, bool adapt=false);
   void packlift_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void packlift_2layer_encode(bool halfres=false, bool adapt=false);
+  void packlift_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient_encode(bool halfres=false, bool adapt=false);
   void orient_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void orient2_packet_encode(bool halfres=false, bool adapt=false);
   void orient2_packet_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void orient2_encode(bool halfres=false, bool adapt=false);
-  void orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void orient_2layer_encode(bool halfres=false, bool adapt=false);
+  void orient_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void packlift_orient2_encode(bool halfres=false, bool adapt=false);
   void packlift_orient2_decode(char *bitrate, bool halfres=false, bool adapt=false);
   void hpfprelift_encode(bool halfres=false, bool adapt=false);
   void hpfprelift_decode(char *bitrate, bool halfres=false, bool adapt=false);
-  void hpfprelift2_encode(bool halfres=false, bool adapt=false);
-  void hpfprelift2_decode(char *bitrate, bool halfres=false, bool adapt=false);
+  void hpfprelift_2layer_encode(bool halfres=false, bool adapt=false);
+  void hpfprelift_2layer_decode(char *bitrate, bool halfres=false, bool adapt=false);
 // data members
 protected:
   int h,w; // height and width of the image

@@ -100,28 +100,58 @@ int orienttest(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
+  //char Cdecomp[] = "B(-:-:-),B(-:-:-)";
   char currfile[] = "D:\\Work\\Images\\lighthouse.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
-  dwtnode in(currfile,w5x3);
+  dwtnode in(currfile,w9x7);
   in.ofield.init_orient("sideinf\\lighthouse_1244.dat");
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
   bool adapt=true; // select adaptive mode
-  bool halfres=true; // compute mses for half resolution instead
-  bool imageout=true; // dump out compressed, decoded images and collate
-  testmode mode=hpfprelift;
+  bool halfres=false; // compute mses for half resolution instead
+  bool imageout=halfres; // dump out compressed, decoded images and collate
+  testmode mode=packlift;
   void (dwtnode::*encode_ptr)(bool, bool) = NULL;
   void (dwtnode::*decode_ptr)(char *, bool, bool) = NULL;
   switch (mode)
   {
-  case base:
+  case base:{
     encode_ptr = &dwtnode::rawl_encode;
     dout << "Ordinary dwt MSEs";
     decode_ptr = &dwtnode::rawl_decode;
     if (halfres)
       ref.analysis(both);
-    break;
-  case packlift:
+    break;}
+  case pyramid:{
+    encode_ptr = &dwtnode::pyramid_encode;
+    dout << "Laplacian pyramid MSEs";
+    decode_ptr = &dwtnode::pyramid_decode;
+    if (halfres)
+      ref.lp2x3_halfres();
+    break;}
+  case pyramid3x2:{
+    encode_ptr = &dwtnode::lp3x2_encode;
+    dout << "Flierl pyramid MSEs";
+    decode_ptr = &dwtnode::lp3x2_decode;
+    if (halfres)
+      ref.lp3x2_halfres(); // replace image with laplacian half res
+    break;}
+  case pyramid2x3:{
+    encode_ptr = &dwtnode::lp2x3_encode;
+    dout << "Tran pyramid MSEs";
+    decode_ptr = &dwtnode::lp2x3_decode;
+    if (halfres)
+      ref.lp2x3_halfres(); // replace image with laplacian half res
+    break;}
+  case pyramid2x3_2layer:{
+    encode_ptr = &dwtnode::lp2x3_2layer_encode;
+    dout << "2 level Tran pyramid MSEs";
+    decode_ptr = &dwtnode::lp2x3_2layer_decode;
+    if (halfres){
+      cerr << "quarter res currently unsupported" << endl;
+      exit(1);}
+    break;}
+  case packlift:{
     encode_ptr = &dwtnode::packlift_encode;
     dout << "Packet lifting MSEs";
     decode_ptr = &dwtnode::packlift_decode;
@@ -139,56 +169,18 @@ int compresstest(int argc, _TCHAR* argv[])
       ref.interleave(true);
     }
     if (adapt) dout << " adaptive";
-    break;
-  case pyramid:
-    encode_ptr = &dwtnode::pyramid_encode;
-    dout << "Laplacian pyramid MSEs";
-    decode_ptr = &dwtnode::pyramid_decode;
-    if (halfres)
-      ref.lp2x3_halfres();
-    break;
-  case pyramid3x2:
-    encode_ptr = &dwtnode::lp3x2_encode;
-    dout << "Flierl pyramid MSEs";
-    decode_ptr = &dwtnode::lp3x2_decode;
-    if (halfres)
-      ref.lp3x2_halfres(); // replace image with laplacian half res
-    break;
-  case pyramid2x3:
-    encode_ptr = &dwtnode::lp2x3_encode;
-    dout << "Tran pyramid MSEs";
-    decode_ptr = &dwtnode::lp2x3_decode;
-    if (halfres)
-      ref.lp2x3_halfres(); // replace image with laplacian half res
-    break;
-  case orient:
-    encode_ptr = &dwtnode::orient_encode;
-    dout << "Oriented wavelet MSEs";
-		decode_ptr = &dwtnode::orient_decode;
-    if (halfres)
-      ref.oriented_analysis(both);
-    break;
-  case orient2packet:
-    encode_ptr = &dwtnode::orient2_packet_encode;
-    dout << "Oriented packet wavelet MSEs";
-		decode_ptr = &dwtnode::orient2_packet_decode;
-    if (halfres)
-    {
-      ref.oriented_packet_analysis(both);
-      ref.extract_subband(0);
-      ref.subbands[0]->oriented_synthesis(both);
-      dwtnode tmp(*ref.subbands[0]);
-      ref = tmp;
+    break;}
+  case packlift_2layer:{
+    encode_ptr = &dwtnode::packlift_2layer_encode;
+    dout << "2 level packet lifting MSEs";
+    decode_ptr = &dwtnode::packlift_2layer_decode;
+    if (halfres){
+      cerr << "quarter res currently unsupported" << endl;
+      exit(1);
     }
-    break;
-  case orient2:
-    encode_ptr = &dwtnode::orient2_encode;
-    dout << "2 level oriented MSEs";
-    decode_ptr = &dwtnode::orient2_decode;
-    if (halfres)
-      ref.oriented_analysis(both);
-    break;
-  case packliftorient2:
+    if (adapt) dout << " adaptive";
+    break;}
+  case packliftorient2:{
     encode_ptr = &dwtnode::packlift_orient2_encode;
     dout << "2 level oriented + packlift MSEs";
     decode_ptr = &dwtnode::packlift_orient2_decode;
@@ -205,21 +197,48 @@ int compresstest(int argc, _TCHAR* argv[])
       ref.subbands[0]->synthesis(both);
       ref.interleave(true);
     }
-    break;
-  case hpfprelift:
+    break;}
+  case orient:{
+    encode_ptr = &dwtnode::orient_encode;
+    dout << "Oriented wavelet MSEs";
+		decode_ptr = &dwtnode::orient_decode;
+    if (halfres)
+      ref.oriented_analysis(both);
+    break;}
+  case orient2packet:{
+    encode_ptr = &dwtnode::orient2_packet_encode;
+    dout << "Oriented packet wavelet MSEs";
+		decode_ptr = &dwtnode::orient2_packet_decode;
+    if (halfres)
+    {
+      ref.oriented_packet_analysis(both);
+      ref.extract_subband(0);
+      ref.subbands[0]->oriented_synthesis(both);
+      dwtnode tmp(*ref.subbands[0]);
+      ref = tmp;
+    }
+    break;}
+  case orient_2layer:{
+    encode_ptr = &dwtnode::orient_2layer_encode;
+    dout << "2 level oriented MSEs";
+    decode_ptr = &dwtnode::orient_2layer_decode;
+    if (halfres)
+      ref.oriented_analysis(both);
+    break;}
+  case hpfprelift:{
     encode_ptr = &dwtnode::hpfprelift_encode;
     dout << "HPF prelift MSEs";
     decode_ptr = &dwtnode::hpfprelift_decode;
     if (halfres)
       ref.hpf_oriented_analysis(both,adapt);
-    break;
-  case hpfprelift2:
-    encode_ptr = &dwtnode::hpfprelift2_encode;
+    break;}
+  case hpfprelift_2layer:{
+    encode_ptr = &dwtnode::hpfprelift_2layer_encode;
     dout << "2 level HPF prelift MSEs";
-    decode_ptr = &dwtnode::hpfprelift2_decode;
+    decode_ptr = &dwtnode::hpfprelift_2layer_decode;
     if (halfres)
       ref.hpf_oriented_analysis(both,adapt);
-    break;
+    break;}
   default:
     cerr << "This test mode is unsupported" << endl;
     exit(1);

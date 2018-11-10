@@ -283,18 +283,18 @@ void packswap(dwtnode &donor, dwtnode &receiver,
   }
   return;
 }
-// Perform packet lifting between the appropriate subbands
-// Child bands (LL1, HL1 and LH1) must be analysed down to dwtlevel 1 in
-// the direction of the packet lifting. After packet lifting, the dwtnode
-// structure will be restored to this structure before returning.
+// Performs packet lifting between the appropriate packet subbands
+// The parent band must be analysed to dwtlevel 1, and the child bands
+// (LL1, HL1 and LH1) must be extracted and analysed to dwtlevel 1 in
+// the direction of the packet lifting. The dwtlevels of these subbands
+// will be restored to this structure before returning.
 void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
 {
   bool horzsecond = false;
   subbands[0]->extract_subband(3); // the LL-HH packet is always used
   if ((dim == horizontal)||(dim == both))
   {
-    if ((subbands[0]->dwtlevel[horizontal]!=1)
-      ||(subbands[1]->dwtlevel[horizontal]!=1))
+    if ((subbands[0]->dwtlevel[horizontal]!=1)||(subbands[1]->dwtlevel[horizontal]!=1))
     {
       cerr << "Warning: horizontal dwt levels are inconsistent; packet "
         << "lifting may be invalid" << endl;
@@ -315,8 +315,7 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
   }
   if ((dim == vertical)||(dim == both))
   {
-    if ((subbands[0]->dwtlevel[vertical]!=1)
-      ||(subbands[2]->dwtlevel[vertical]!=1))
+    if ((subbands[0]->dwtlevel[vertical]!=1)||(subbands[2]->dwtlevel[vertical]!=1))
     {
       cerr << "Warning: vertical dwt levels are inconsistent; packet "
         << "lifting may be invalid" << endl;
@@ -339,5 +338,37 @@ void dwtnode::packlift(direction dim, bool analysis, bool adaptive)
     subbands[1]->interleave();
   }
   subbands[0]->interleave();
+  return;
+}
+void dwtnode::packlift_analysis(direction dim, bool adapt)
+{
+  analysis(dim);
+  extract_subband(0);
+  extract_subband(1);
+  extract_subband(2);
+  subbands[0]->analysis(both);
+  subbands[1]->analysis(both);
+  subbands[2]->analysis(both);
+  packlift(dim,true,adapt);
+  subbands[0]->synthesis(both);
+  subbands[1]->synthesis(both);
+  subbands[2]->synthesis(both);
+  interleave();
+  return;
+}
+void dwtnode::packlift_synthesis(direction dim, bool adapt)
+{
+  extract_subband(0);
+  extract_subband(1);
+  extract_subband(2);
+  subbands[0]->analysis(both);
+  subbands[1]->analysis(both);
+  subbands[2]->analysis(both);
+  packlift(dim,false,adapt);
+  subbands[0]->synthesis(both);
+  subbands[1]->synthesis(both);
+  subbands[2]->synthesis(both);
+  interleave();
+  synthesis(both);
   return;
 }
