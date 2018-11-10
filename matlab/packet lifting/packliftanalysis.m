@@ -23,8 +23,8 @@ function X = packliftanalysis(X,Ht,Hc,Hp,mode,Tgrid)
 % take a value in [0,1], where 0 indicates the packet lifting has been
 % switched off at that location.
 [h,w] = size(X);
-if nargin<5   mode = ''; end
-if nargin<6   Tgrid = ones(h/4,w/4); end
+if nargin<5,  mode = ''; end
+if nargin<6,  Tgrid = ones(h/4,w/4); end
 skipdwt = any(mode=='S');
 verticalonly = any(mode=='V');
 use5x3 = any(mode=='5');

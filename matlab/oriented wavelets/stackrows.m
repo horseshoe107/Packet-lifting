@@ -1,10 +1,12 @@
 function M = stackrows(varargin)
 % M = stackrows(R1,R2,....Rn)
 %
-% Form matrix M with row elements R1,R2..Rn such that M(i,:) = Ri
+% Form matrix M with row elements R1,R2..Rn such that M(i,:) = [0...0 Ri 0...0]
 % The row vectors may be inequal in length but must differ from each other
 % by an even number of elements. Shorter rows will be zero padded
 % symmetrically to match the longest row.
+R = cell(1,nargin);
+Rlen = zeros(1,nargin);
 for i=1:nargin
     R{i} = varargin{i};
     Rlen(i) = length(R{i});

@@ -108,3 +108,23 @@ figure, imshow(A1_10bpp,[])
 figure, imshow(A1_08bpp,[])
 figure, imshow(A1_04bpp,[])
 figure, imshow(A1_02bpp,[])
+
+A = ones(100); row=11;
+A(:,1:50)=10*A(:,1:50); A(:,51:100)=245*A(:,51:100);
+% imshow(A,[0 255])
+X = analysis_9_7(analysis_9_7(A',1,0)',1,0);
+% zero all high frequency bands (testing end-to-end filter)
+Y = zeros(100); Y(1:2:100,1:2:100)=X(1:2:100,1:2:100);
+Y = synthesis_9_7(synthesis_9_7(Y',1,0)',1,0);
+Z = packliftanalysis(Y,Ht,Hc,Hp,'');
+% figure, imshow(Z(1:2:100,1:2:100),[0 255]);
+figure(5), plot(Z(row,1:2:100)); hold on
+% zero the low frequency band (test cancellation filter)
+Y = X; Y(1:2:100,1:2:100)=zeros(50);
+Y = synthesis_9_7(synthesis_9_7(Y',1,0)',1,0);
+Z = packliftanalysis(Y,Ht,Hc,Hp,'');
+% figure, imshow(Z(1:2:100,1:2:100)+X(1:2:100,1:2:100),[0 255]);
+figure(5), plot(Z(row,1:2:100)+X(row,1:2:100),'r');
+Y = synthesis_9_7(synthesis_9_7(X',1,0)',1,0);
+Z = packliftanalysis(Y,Ht,Hc,Hp,'');
+figure(5), plot(Z(row,1:2:100),'m');

@@ -1,4 +1,4 @@
-function Y = zerodc(X,zeroac)
+function Y = zerodc(X,~)
 % Y = zerodc(X,nyquist*)
 %
 % modify filters specified in X so that their dc component is zero.
