@@ -558,22 +558,6 @@ void quadtree_est::thirdpass(direction pdir, char pshift, orienttree *node)
   }
   return;
 }
-void writeshitout(orienttree *node, ofstream &shitout)
-{
-  //if (node->leaf)
-  //{
-    for (int n=0;n<34;n++)
-      shitout << (int) node->jprimecand[n].jprime << " ";
-    //for (int n=0;n<34;n++)
-    //  shitout << (int) node->Jvec[n].J << " ";
-    shitout << endl;
-  //}
-  //else
-    for (int i=0;i<4;i++)
-      if (node->children[i]!=NULL)
-        writeshitout(node->children[i],shitout);
-  return;
-}
 void estorient2::quadtree_estimate()
 {
   qtree.firstpass_constructtree(0,0,0,root); // construct tree, calculate E + J

@@ -5,7 +5,30 @@ direction operator!(direction dir); // (defined in base.cpp)
 enum dwttype {w5x3, w9x7, disabled};
 enum testmode {base,pyramid3x2,pyramid2x3,packlift,orient,orient2packet,
   orient2,packliftorient2,hpfprelift,hpfprelift2};
-struct orientation{char hshift; char vshift;};
+class orientation
+{
+public:
+  char hshift; char vshift;
+  orientation operator + (orientation param)
+  {
+    orientation temp;
+    temp.hshift = hshift + param.hshift;
+    temp.vshift = vshift + param.vshift;
+    return (temp);
+  }
+  orientation operator += (orientation param)
+  {
+    hshift += param.hshift;
+    vshift += param.vshift;
+    return *this;
+  }
+  orientation operator >>= (int param)
+  {
+    hshift >>= param;
+    vshift >>= param;
+    return *this;
+  }
+};
 class orientationfield
 {
   friend class dwtnode;

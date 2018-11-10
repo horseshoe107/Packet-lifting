@@ -88,12 +88,46 @@ void orientationfield::inherit(orientationfield &parent)
   this->oprec     = parent.oprec;
   this->maxshift  = parent.maxshift;
   this->fieldtype = parent.fieldtype;
-  if (parent.blksz%2!=0) // blksz needs to be multiple of 2
+  if (parent.blksz==1)
+  {
+    cerr << "Warning: subsampling orientation field" << endl;
+    this->blksz = 1;
+    this->numblks = h*w;
+    if (orientvec != NULL)
+      delete[] orientvec;
+    this->orientvec = new orientation[numblks];
+    for (int y=0;y<h;y++)
+      for (int x=0;x<w;x++)
+      {
+        orientation acc=parent.orientvec[2*y*parent.w+2*x];
+        if ((2*y+1<parent.h)&&(2*x+1<parent.w))
+        {
+          acc += parent.orientvec[2*y*parent.w+2*x+1]
+                + parent.orientvec[(2*y+1)*parent.w+2*x]
+                + parent.orientvec[(2*y+1)*parent.w+2*x+1];
+          acc >>= 2;
+        }
+        else if (2*y+1<parent.h)
+        {
+          acc += parent.orientvec[(2*y+1)*parent.w+2*x];
+          acc >>= 1;
+        }
+        else if (2*x+1<parent.w)
+        {
+          acc += parent.orientvec[2*y*parent.w+2*x+1];
+          acc >>= 1;
+        }
+        orientvec[y*w+x] = acc;
+      }
+  }
+  else if (parent.blksz%2!=0) // blksz needs to be multiple of 2
   {
     cerr << "Subsampling of shift field is not defined for ";
     cerr << "block size " << parent.blksz << endl;
     exit(1);
   }
+  else
+  {
   this->blksz = parent.blksz/2;
   this->numblks   = parent.numblks;
   if (orientvec != NULL)
@@ -101,6 +135,7 @@ void orientationfield::inherit(orientationfield &parent)
   this->orientvec = new orientation[numblks];
   for (int n=0;n<numblks;n++)
     orientvec[n] = parent.orientvec[n];
+  }
   return;
 }
 void orientationfield::orientwrite(char *fname)
