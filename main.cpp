@@ -13,10 +13,10 @@ int estimate(int argc, _TCHAR* argv[])
 }
 int quadtree_estimate(int argc, _TCHAR* argv[])
 {
-  char currfile[] = "D:\\Work\\Images\\bike.pgm";
+  char currfile[] = "D:\\Work\\Images\\bikecrop1024.pgm";
   estorient2 est(currfile,w5x3);
   est.ofield.init_orient(1,8,8,0,0);
-  est.calc_energies();
+  est.calc_energies(1,500);
   est.quadtree_estimate();
   est.quadtree_flatten();
   est.ofield.orientwrite("sideinf\\quadtree_out.dat");
@@ -100,10 +100,10 @@ int orienttest(int argc, _TCHAR* argv[])
 int compresstest(int argc, _TCHAR* argv[])
 {
   char Cdecomp[] = "B(BH-H-:BVV--:-),B(H:V:B)";
-  char currfile[] = "D:\\Work\\Images\\lighthouse.pgm";
+  char currfile[] = "D:\\Work\\Images\\bikecrop1024.pgm";
   ofstream dout("results\\dumpout.txt",ios::app);
   dwtnode in(currfile,w5x3);
-  in.ofield.init_orient("sideinf\\quadtree_lighthouse_14399.dat");
+  in.ofield.init_orient("sideinf\\quadtree_bikecrop10_34709.dat");
   //in.ofield.init_orient(4,8,8,4,0);
 	in.ofield.setaffinefield();
 	dwtnode ref=in;
@@ -273,9 +273,9 @@ int hpftest(int argc, _TCHAR* argv[])
 int _tmain(int argc, _TCHAR* argv[])
 {
   //system("del sideinf\\alpha_transfer.dat");
-  //compresstest(argc,argv);
+  compresstest(argc,argv);
   //orienttest(argc,argv);
-  quadtree_estimate(argc,argv);
+  //quadtree_estimate(argc,argv);
   //hpftest(argc,argv);
   //yuvstreamprocess(argc,argv);
   return 0;

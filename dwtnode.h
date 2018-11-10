@@ -191,7 +191,7 @@ class estorient2 : public dwtnode
 {
 public:
   estorient2(char* fname,dwttype type):dwtnode(fname,type){}
-  void calc_energies();
+  void calc_energies(int minblksize, float lambda);
   void quadtree_estimate();
   void quadtree_flatten();
 protected:

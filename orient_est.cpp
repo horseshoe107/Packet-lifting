@@ -331,15 +331,14 @@ void estorient::legacy_choose_orient()
   }
   return;
 }
-const double a = 2*log(2.0);
-const double lambda = 100;
+const float a = 2*log(2.0);
 orienttree *root;
 class quadtree_est
 {
 public:
   quadtree_est(){orientenergy[0]=NULL; orientenergy[1]=NULL;}
   ~quadtree_est();
-  void init(int seth, int setw, int maxshift);
+  void init(int seth, int setw, int steminblksize, float setlambda, int maxshift);
   void firstpass_constructtree(int locy, int locx, int depth, orienttree *&node);
   void secondpass(orienttree *node);
   void thirdpass(direction pdir, char pshift, orienttree *node);
@@ -347,21 +346,25 @@ public:
 //private:
   int h, w;
   int size; // next power of 2 that is >= h and w
+  int minblksize;
+  float lambda;
   int maxshift, s;
-  double **orientenergy[2]; // 0=vertical transform
+  float **orientenergy[2]; // 0=vertical transform
 } qtree;
-void quadtree_est::init(int seth, int setw, int setmaxshift)
+void quadtree_est::init(int seth, int setw, int setminblksize, float setlambda, int setmaxshift)
 {
   h = seth;
   w = setw;
+  minblksize = setminblksize;
+  lambda = setlambda;
   maxshift = setmaxshift;
   s = 2*maxshift+1; // number of shifts allowed per direction
-  orientenergy[0] = new double*[h*w];
-  orientenergy[1] = new double*[h*w];
+  orientenergy[0] = new float*[h*w];
+  orientenergy[1] = new float*[h*w];
   for (int n=0;n<(h*w);n++)
   {
-    orientenergy[0][n] = new double[s];
-    orientenergy[1][n] = new double[s];
+    orientenergy[0][n] = new float[s];
+    orientenergy[1][n] = new float[s];
   }
   for (size=1;size<max(h,w);size<<=1)
     ;
@@ -378,9 +381,9 @@ quadtree_est::~quadtree_est()
       delete[] orientenergy[i];
     }
 }
-void estorient2::calc_energies()
+void estorient2::calc_energies(int minblksize, float lambda)
 {
-  qtree.init(h,w,this->ofield.maxshift);
+  qtree.init(h,w,minblksize,lambda,this->ofield.maxshift);
   int z, sker; // shift expressed in whole pixels, and fractional (via shift kernel LUT)
   bool ksig;   // flag indicating positive or negative shift
   for (int y=0;y<h;y++)
@@ -408,8 +411,8 @@ void estorient2::calc_energies()
         else
           tmpH -= 0.5*(filt(splines+sker,y*w+x-1,z,splines_extent,vertical,!ksig)
                       +filt(splines+sker,y*w+x+1,-z,splines_extent,vertical,ksig) );
-        qtree.orientenergy[0][y*w+x][sigma+ofield.maxshift] = tmpV*tmpV;
-        qtree.orientenergy[1][y*w+x][sigma+ofield.maxshift] = tmpH*tmpH;
+        qtree.orientenergy[0][y*w+x][sigma+ofield.maxshift] = (float) tmpV*tmpV;
+        qtree.orientenergy[1][y*w+x][sigma+ofield.maxshift] = (float) tmpH*tmpH;
       }
     }
   return;
@@ -419,14 +422,14 @@ void quadtree_est::firstpass_constructtree(int locy, int locx, int depth, orient
   int endy = min(h,locy+(size>>depth));
   int endx = min(w,locx+(size>>depth));
   int blocksize = max((endy-locy)*(endx-locx),0); // blocksize must be non-negative
-  double b = lambda*blocksize/a; // knee of log-linear function
+  float b = lambda*blocksize/a; // knee of log-linear function
   if (node!=NULL)
     delete node;
   node = new orienttree(vertical,0,false);
   node->jprimecand = new jprimevec[2*s];
   for (int shift=0;shift<=2*maxshift;shift++)
   {
-    double accE[2]={0.0,0.0};
+    float accE[2]={0.0,0.0};
     for (int y=locy;y<endy;y++)
       for (int x=locx;x<endx;x++)
       {
@@ -435,12 +438,10 @@ void quadtree_est::firstpass_constructtree(int locy, int locx, int depth, orient
       }
     node->jprimecand[shift].jprime = (accE[0]<=b)? accE[0] : b*(1+log(accE[0]/b));
     node->jprimecand[shift+s].jprime = (accE[1]<=b)? accE[1] : b*(1+log(accE[1]/b));
-    if (node->jprimecand[shift].jprime > 1000000000)
-      cerr << "something wrong here" << endl;
     //node->jprimecand[shift].jprime = accE[0];
     //node->jprimecand[shift+s].jprime = accE[1];
   }
-  if ((size>>depth) > 16) // iterate for the children
+  if ((size>>depth) > minblksize) // iterate for the children
   {
     int d=depth+1;
     firstpass_constructtree(locy,locx,d,node->children[0]);
@@ -482,7 +483,7 @@ void quadtree_est::secondpass(orienttree *node)
     secondpass(node->children[3]);
     for (int shift=0;shift<2*s;shift++) // calculate pruning for every possible shift
     {
-      double childsum = 0;
+      float childsum = 0;
       for (int i=0;i<4;i++)
         childsum += node->children[i]->Jvec[shift].J;
       if (childsum < node->jprimecand[shift].jprime)
@@ -498,7 +499,7 @@ void quadtree_est::secondpass(orienttree *node)
   for (int pdir=vertical,pindex=0;pdir!=both;pdir++) // iterate over all possible parent shifts
     for (char pshift=-maxshift;pshift<=maxshift;pshift++,pindex++)
     {
-      double tmpbestJ = node->jprimecand[maxshift].jprime
+      float tmpbestJ = node->jprimecand[maxshift].jprime
         + lambda*compute_child_Ls(vertical,0,(direction)pdir,pshift);
       direction tmpbestdir = vertical;
       char tmpbestshift = 0;
@@ -506,7 +507,7 @@ void quadtree_est::secondpass(orienttree *node)
       for (int cdir=vertical,cindex=0; cdir!=both; cdir++)
         for (char cshift=-maxshift;cshift<=maxshift;cshift++,cindex++)
         {
-          double currJ = node->jprimecand[cindex].jprime + lambda*
+          float currJ = node->jprimecand[cindex].jprime + lambda*
             compute_child_Ls((direction)cdir,cshift,(direction)pdir,pshift);
           if (currJ<tmpbestJ)
           {

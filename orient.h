@@ -1,6 +1,6 @@
 #include "dwtnode.h"
-struct jprimevec{double jprime; bool prune;};
-struct bestJvec{double J; direction cdir; char cshift;};
+struct jprimevec{float jprime; bool prune;};
+struct bestJvec{float J; direction cdir; char cshift;};
 class orienttree
 {
 public:
